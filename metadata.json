@@ -1,0 +1,6 @@
+{
+  "name": "Global Scholarship Finder",
+  "description": "Discover verified global scholarships matched to your country, university, and academic profile including CGPA and failed subjects analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
