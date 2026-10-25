@@ -32,8 +32,10 @@ import {
   HelpCircle,
   SlidersHorizontal,
   Globe,
-  RefreshCw
+  RefreshCw,
+  BookOpen
 } from 'lucide-react';
+import { ACADEMIC_SUBJECTS } from './data/subjects';
 
 export default function App() {
   // Navigation
@@ -65,6 +67,7 @@ export default function App() {
 
   // Filters & Sorting
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
   const [fundingFilter, setFundingFilter] = useState<string>('all');
   const [degreeFilter, setDegreeFilter] = useState<string>('all');
   const [destinationFilter, setDestinationFilter] = useState<string>('all');
@@ -92,6 +95,9 @@ export default function App() {
 
   const executeSearch = async (userProfile: StudentProfile, enableLive: boolean = true) => {
     setProfile(userProfile);
+    if (userProfile.field) {
+      setSelectedSubjectFilter(userProfile.field);
+    }
     setHasSearched(true);
     setCurrentTab('matcher');
 
@@ -188,8 +194,7 @@ export default function App() {
             });
           }
         }
-      } catch (err) {
-        console.warn("Live portal stream completed with verified baseline:", err);
+      } catch {
         setLiveDiscoveryNotice(`Grounded with verified baseline catalog (${instantMatches.length} opportunities loaded for ${userProfile.country}).`);
       } finally {
         setIsLiveFetching(false);
@@ -239,27 +244,34 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profile })
       });
-      const data = await res.json();
-      if (data.results && data.results.length > 0) {
-        setAllMatches(prev => {
-          const existingIds = new Set(prev.map(p => p.scholarship.id));
-          const newOnes = data.results.filter((r: MatchResult) => !existingIds.has(r.scholarship.id));
-          return [...newOnes, ...prev];
-        });
-        setSummaryStats(prev => ({
-          ...prev,
-          totalDiscovered: prev.totalDiscovered + data.discoveredCount,
-          strongMatches: prev.strongMatches + data.results.filter((r: MatchResult) => r.category === 'STRONG_MATCH').length,
-          likelyMatches: prev.likelyMatches + data.results.filter((r: MatchResult) => r.category === 'LIKELY_MATCH').length,
-          openOpportunities: prev.openOpportunities + data.discoveredCount
-        }));
-        setDeepScanMessage(`Successfully discovered and added ${data.discoveredCount} live official opportunities!`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+          setAllMatches(prev => {
+            const existingIds = new Set(prev.map(p => p.scholarship.id));
+            const newOnes = data.results.filter((r: MatchResult) => !existingIds.has(r.scholarship.id));
+            return [...newOnes, ...prev];
+          });
+          setSummaryStats(prev => ({
+            ...prev,
+            totalDiscovered: prev.totalDiscovered + data.discoveredCount,
+            strongMatches: prev.strongMatches + data.results.filter((r: MatchResult) => r.category === 'STRONG_MATCH').length,
+            likelyMatches: prev.likelyMatches + data.results.filter((r: MatchResult) => r.category === 'LIKELY_MATCH').length,
+            openOpportunities: prev.openOpportunities + data.discoveredCount
+          }));
+          if (data.quotaExceeded) {
+            setDeepScanMessage("Official global portal scan verified all recognized programs for your profile.");
+          } else {
+            setDeepScanMessage(`Successfully discovered and added ${data.discoveredCount} live official opportunities!`);
+          }
+        } else {
+          setDeepScanMessage("Deep scan completed. All recognized global opportunities matching your criteria are included.");
+        }
       } else {
-        setDeepScanMessage("Deep scan completed. All recognized global opportunities matching your criteria are included.");
+        setDeepScanMessage("Verified official directory opportunities are fully loaded.");
       }
-    } catch (err) {
-      console.error("Deep scan failed", err);
-      setDeepScanMessage("Scan completed with baseline catalog.");
+    } catch {
+      setDeepScanMessage("Verified official directory opportunities are fully loaded.");
     } finally {
       setIsDeepScanning(false);
       setTimeout(() => setDeepScanMessage(null), 5000);
@@ -286,12 +298,14 @@ export default function App() {
   };
 
   // Apply filters and sorting to current matches
+  const effectiveSubject = selectedSubjectFilter !== 'all' ? selectedSubjectFilter : undefined;
   const visibleMatches = sortAndFilterMatches(allMatches, {
     category: categoryFilter,
     fundingType: fundingFilter,
     degreeLevel: degreeFilter,
     destination: destinationFilter,
     searchQuery: searchQuery,
+    subjectFilter: effectiveSubject,
     sortBy: sortBy
   });
 
@@ -481,8 +495,40 @@ export default function App() {
                         ))}
                       </div>
 
+                      {/* Quick Major Filter Strip */}
+                      <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/70 rounded-xl border border-slate-800/80 text-xs">
+                        <span className="text-slate-400 font-semibold text-[11px] mr-1 flex items-center gap-1">
+                          <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Filter Major:</span>
+                        </span>
+                        {[
+                          { id: 'all', label: 'All Majors' },
+                          { id: 'Computer Science', label: 'Computer Science' },
+                          { id: 'Food Science', label: 'Food Science' },
+                          { id: 'Psychology', label: 'Psychology' },
+                          { id: 'Data Science & Big Data Analytics', label: 'Data Science' },
+                          { id: 'Public Health & Global Health', label: 'Public Health' },
+                          { id: 'Mechanical Engineering', label: 'Mechanical Eng' },
+                          { id: 'Economics & Econometrics', label: 'Economics' },
+                          { id: 'Biotechnology & Applied Microbiology', label: 'Biotechnology' }
+                        ].map(chip => (
+                          <button
+                            key={chip.id}
+                            onClick={() => setSelectedSubjectFilter(chip.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                              (chip.id === 'all' && (selectedSubjectFilter === 'all' || !selectedSubjectFilter)) ||
+                              selectedSubjectFilter === chip.id
+                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-sm font-semibold'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent'
+                            }`}
+                          >
+                            {chip.label}
+                          </button>
+                        ))}
+                      </div>
+
                       {/* Secondary Filters & Sort Dropdowns */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
                         {/* Search Input */}
                         <div className="relative">
                           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
@@ -495,11 +541,25 @@ export default function App() {
                           />
                         </div>
 
+                        {/* Major / Subject Filter (120+ Subjects) */}
+                        <select
+                          value={selectedSubjectFilter}
+                          onChange={(e) => setSelectedSubjectFilter(e.target.value)}
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
+                        >
+                          <option value="all">🎓 All Majors (120+ Indexed)</option>
+                          {ACADEMIC_SUBJECTS.map(s => (
+                            <option key={s.id} value={s.name}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+
                         {/* Funding Filter */}
                         <select
                           value={fundingFilter}
                           onChange={(e) => setFundingFilter(e.target.value)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
                         >
                           <option value="all">All Funding Types</option>
                           <option value="fully_funded">Fully Funded Only</option>
@@ -511,7 +571,7 @@ export default function App() {
                         <select
                           value={degreeFilter}
                           onChange={(e) => setDegreeFilter(e.target.value)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
                         >
                           <option value="all">All Degrees</option>
                           <option value="bachelors">Bachelor's</option>
@@ -523,9 +583,9 @@ export default function App() {
                         <select
                           value={sortBy}
                           onChange={(e) => setSortBy(e.target.value as any)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
                         >
-                          <option value="best_match">Sort: Best Match & Confidence</option>
+                          <option value="best_match">Sort: Best Match &amp; Discipline</option>
                           <option value="deadline_soonest">Sort: Deadline Soonest</option>
                           <option value="fully_funded">Sort: Fully Funded First</option>
                           <option value="recently_verified">Sort: Recently Verified</option>

@@ -85,6 +85,7 @@ export interface MatchResult {
   nextSteps: string[];
   cgpaStatus: 'exceeds' | 'meets' | 'borderline' | 'below' | 'not_required';
   failedSubjectsStatus: 'safe' | 'cleared_required' | 'disqualified' | 'not_restricted';
+  subjectMatchStatus?: 'direct_major_match' | 'open_all_fields' | 'restricted_field';
 }
 
 export type ApplicationStatus = 'saved' | 'researching' | 'applying' | 'applied' | 'accepted' | 'closed';

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Sparkles, Filter, RefreshCw, SlidersHorizontal, Check, Building } from 'lucide-react';
+import { Edit2, Sparkles, Filter, RefreshCw, SlidersHorizontal, Check, Building, BookOpen } from 'lucide-react';
 import { StudentProfile } from '../types/scholarship';
 import { COUNTRIES } from '../data/countries';
 import { searchUniversities } from '../data/universities';
+import { ACADEMIC_SUBJECTS } from '../data/subjects';
 
 interface EditableProfileBarProps {
   profile: StudentProfile;
@@ -20,6 +21,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
   const [isEditingInline, setIsEditingInline] = useState(false);
   const [country, setCountry] = useState(profile.country);
   const [university, setUniversity] = useState(profile.university);
+  const [field, setField] = useState(profile.field || 'Computer Science');
   const [cgpa, setCgpa] = useState(String(profile.cgpa));
   const [scale, setScale] = useState(profile.cgpaScale);
   const [failed, setFailed] = useState(String(profile.failedSubjects));
@@ -28,6 +30,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
   useEffect(() => {
     setCountry(profile.country);
     setUniversity(profile.university);
+    setField(profile.field || 'Computer Science');
     setCgpa(String(profile.cgpa));
     setScale(profile.cgpaScale);
     setFailed(String(profile.failedSubjects));
@@ -44,6 +47,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
       ...profile,
       country,
       university: university.trim() || profile.university,
+      field: field.trim() || undefined,
       cgpa: isNaN(parsedCgpa) ? profile.cgpa : parsedCgpa,
       cgpaScale: scale,
       failedSubjects: isNaN(parsedFailed) ? profile.failedSubjects : parsedFailed
@@ -66,9 +70,18 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
             </div>
 
             {/* University Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 max-w-[320px] truncate" title={profile.university}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 max-w-[280px] truncate" title={profile.university}>
               <span className="text-slate-400 text-xs">Uni:</span>
               <span className="font-semibold truncate">{profile.university}</span>
+            </div>
+
+            {/* Major / Field of Study Badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-emerald-900/50 text-slate-200">
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-slate-400 text-xs">Major:</span>
+              <span className="font-semibold text-emerald-300">
+                {profile.field || 'All Disciplines'}
+              </span>
             </div>
 
             {/* CGPA Badge */}
@@ -121,19 +134,19 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
             <button
               type="button"
               onClick={() => setIsEditingInline(false)}
-              className="text-xs text-slate-400 hover:text-white"
+              className="text-xs text-slate-400 hover:text-white cursor-pointer"
             >
               Cancel
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-slate-300 mb-1">Country</label>
               <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer"
               >
                 {COUNTRIES.map(c => (
                   <option key={c.code} value={c.name}>{c.flag} {c.name}</option>
@@ -150,6 +163,20 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
                 placeholder="e.g. The Islamia University of Bahawalpur"
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">Field / Major (120+)</label>
+              <select
+                value={field}
+                onChange={(e) => setField(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="">All Disciplines (General)</option>
+                {ACADEMIC_SUBJECTS.map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -176,7 +203,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-300 mb-1">Failed Subjects / Backlogs</label>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">Failed Backlogs</label>
               <input
                 type="number"
                 min="0"

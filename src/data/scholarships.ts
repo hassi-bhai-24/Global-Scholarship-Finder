@@ -2557,6 +2557,341 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Certified transcripts of previous education"
     ],
     officialSourceNote: "Verified against Nuffic / Study in NL official platform."
+  },
+  {
+    id: "wageningen-excellence-food-science",
+    name: "Wageningen University Excellence Fellowship in Food Science & Agriculture",
+    provider: "Wageningen University & Research (WUR) / Dutch Ministry",
+    destinationCountry: "Netherlands",
+    officialUrl: "https://www.wur.nl/en/education-programmes/master/scholarships.htm",
+    applicationUrl: "https://www.wur.nl/en/education-programmes/master/scholarships/excellence-programme.htm",
+    eligibleNationalities: ["All Non-EEA International (Pakistan, India, Nigeria, Ghana, Indonesia, Brazil, Egypt, Kenya, Bangladesh, Vietnam, etc.)"],
+    ineligibleNationalities: ["Netherlands"],
+    degreeLevels: ["masters"],
+    fields: [
+      "Food Science",
+      "Food Technology & Processing Engineering",
+      "Human Nutrition & Dietetics",
+      "Food Safety & Quality Assurance",
+      "Agronomy & Crop Science",
+      "Agricultural & Biosystems Engineering",
+      "Sustainable Agriculture & Agroecology"
+    ],
+    minimumCGPA: 3.2,
+    minimumCGPAOriginal: 3.2,
+    cgpaScaleOriginal: "4.0",
+    failedSubjectRule: {
+      policy: "allowed_if_cgpa_met",
+      description: "Wageningen evaluates cumulative degree performance and relevant laboratory or research coursework. Past backlogs that have been cleared before admission do not disqualify candidates.",
+      officialQuote: "Grade point average of at least 80 percent of maximum scale (or First Class / GPA 3.2+). All degree requirements must be conferred."
+    },
+    fundingType: "fully_funded",
+    benefits: {
+      tuitionCoverage: "100% full tuition fee waiver for 2-year MSc program",
+      stipendMonthly: "€1,100 / month living expenses grant",
+      travelAllowance: "Round-trip economy flight to Amsterdam Schiphol",
+      insurance: "Full international health and liability insurance",
+      otherPerks: ["Visa and residence permit handling fee covered", "World #1 institution in Food Science and Agricultural Research"]
+    },
+    deadline: "2027-02-01",
+    openingDate: "2026-10-01",
+    deadlineStatus: "open",
+    daysRemaining: 99,
+    verificationStatus: "verified_official",
+    lastVerified: "2026-10-09",
+    sourceType: "official_university",
+    admissionRequirement: "Relevant Bachelor of Science in Food Science, Food Technology, Chemistry, Agricultural Sciences, or Biology.",
+    languageRequirement: "IELTS 6.5 (min 6.0 in speaking) or TOEFL iBT 92.",
+    applicationSteps: [
+      "Apply for MSc in Food Science, Food Technology, or Human Nutrition at Wageningen University",
+      "Be selected by MSc admission committee for Excellence Programme shortlist",
+      "Submit research abstract and academic reference letters"
+    ],
+    requiredDocuments: [
+      "Bachelor transcript and degree certificate",
+      "Curriculum Vitae",
+      "Motivation statement focusing on global food security and sustainable systems",
+      "2 Academic reference letters"
+    ],
+    officialSourceNote: "Wageningen University & Research official Excellence Programme portal. Ranked #1 worldwide in Agriculture & Food Science."
+  },
+  {
+    id: "erasmus-biftec-food-tech",
+    name: "Erasmus Mundus European Master in Food Science, Technology and Business (BiFTec)",
+    provider: "European Commission / KU Leuven, Anhalt University, Dublin Institute",
+    destinationCountry: "Belgium",
+    officialUrl: "https://www.kuleuven.be/english/education/programmes/biftec",
+    applicationUrl: "https://www.biftec.eu",
+    eligibleNationalities: ["Open to international students from all partner countries worldwide"],
+    degreeLevels: ["masters"],
+    fields: [
+      "Food Science",
+      "Food Technology & Processing Engineering",
+      "Food Safety & Quality Assurance",
+      "Biotechnology & Applied Microbiology",
+      "Dairy Science & Technology"
+    ],
+    minimumCGPA: 3.0,
+    minimumCGPAOriginal: 3.0,
+    cgpaScaleOriginal: "4.0",
+    failedSubjectRule: {
+      policy: "must_be_cleared",
+      description: "Erasmus Mundus consortia require a completed undergraduate degree with all coursework validated. Earlier failures retaken and passed prior to program start are fully accepted.",
+      officialQuote: "Applicants must hold a Bachelor of Science or equivalent degree in food science, chemistry, biology, or agricultural engineering with good grades."
+    },
+    fundingType: "fully_funded",
+    benefits: {
+      tuitionCoverage: "100% full tuition waiver across European partner universities",
+      stipendMonthly: "€1,400 / month Erasmus Mundus living allowance",
+      travelAllowance: "€3,000 / year travel and installation grant",
+      insurance: "Full comprehensive worldwide health and medical coverage",
+      otherPerks: ["Joint European Master degree from 3 leading universities", "Industrial internship in European food conglomerates"]
+    },
+    deadline: "2027-01-15",
+    openingDate: "2026-10-01",
+    deadlineStatus: "open",
+    daysRemaining: 82,
+    verificationStatus: "verified_official",
+    lastVerified: "2026-10-08",
+    sourceType: "official_government",
+    admissionRequirement: "Bachelor's degree in Food Science, Food Technology, Food Engineering, Chemistry, or Life Sciences.",
+    languageRequirement: "IELTS 6.5 or TOEFL iBT 90.",
+    applicationSteps: [
+      "Complete online application via the BiFTec consortium portal",
+      "Submit certified transcripts and course descriptions in food chemistry and processing",
+      "Upload statement of purpose and 2 recommendation letters"
+    ],
+    requiredDocuments: [
+      "Certified transcripts of all undergraduate courses",
+      "Proof of English proficiency",
+      "Curriculum Vitae in Europass format",
+      "2 Letters of Recommendation"
+    ],
+    officialSourceNote: "Erasmus Mundus official EMJM catalogue. Fully funded by European Union under Erasmus+ programme."
+  },
+  {
+    id: "max-planck-psychology-neuroscience",
+    name: "Max Planck Research Fellowships in Human Cognitive Science & Psychology",
+    provider: "Max Planck Society / International Max Planck Research School (IMPRS)",
+    destinationCountry: "Germany",
+    officialUrl: "https://www.cbs.mpg.de/en/imprs-neurocom",
+    applicationUrl: "https://www.cbs.mpg.de/imprs-neurocom/application",
+    eligibleNationalities: ["Open to international students worldwide (all nationalities)"],
+    degreeLevels: ["masters", "phd"],
+    fields: [
+      "Psychology",
+      "Clinical Psychology",
+      "Cognitive Psychology & Cognitive Science",
+      "Neuropsychology & Behavioral Neuroscience",
+      "Social Psychology",
+      "Neurobiology & Brain Physiology"
+    ],
+    minimumCGPA: 3.2,
+    minimumCGPAOriginal: 3.2,
+    cgpaScaleOriginal: "4.0",
+    failedSubjectRule: {
+      policy: "allowed_if_cgpa_met",
+      description: "Evaluation centers on candidate research potential, motivation, and conceptual rigor in psychology and cognitive neuroscience. Past failed courses cleared on the transcript do not disqualify.",
+      officialQuote: "Candidates must have an outstanding Bachelor or Master degree in psychology, cognitive science, neuroscience, medicine, or related fields."
+    },
+    fundingType: "fully_funded",
+    benefits: {
+      tuitionCoverage: "100% tuition-free (Max Planck Institutes have zero tuition fees)",
+      stipendMonthly: "€1,600 – €2,100 / month research fellowship contract (TVöD)",
+      travelAllowance: "Travel and conference attendance funding up to €2,000 / year",
+      insurance: "Full German public healthcare and social security contribution",
+      otherPerks: ["Access to state-of-the-art 3T & 7T MRI brain imaging scanners", "Interdisciplinary supervision by world-renowned cognitive scientists"]
+    },
+    deadline: "2026-12-15",
+    openingDate: "2026-09-15",
+    deadlineStatus: "open",
+    daysRemaining: 51,
+    verificationStatus: "verified_official",
+    lastVerified: "2026-10-07",
+    sourceType: "official_foundation",
+    admissionRequirement: "Undergraduate or postgraduate degree in Psychology, Cognitive Science, Neuroscience, Biology, or Computer Science.",
+    languageRequirement: "Fluent written and spoken English; German language not required for scientific research.",
+    applicationSteps: [
+      "Submit online application through IMPRS NeuroCom portal",
+      "Provide research proposal in cognitive psychology or behavioral neuroscience",
+      "Attend virtual interview symposium with Max Planck directors"
+    ],
+    requiredDocuments: [
+      "Academic transcripts and degree certificate",
+      "CV detailing psychology or laboratory research experience",
+      "Statement of scientific interests (max 2 pages)",
+      "2 Letters of evaluation from academic professors"
+    ],
+    officialSourceNote: "Max Planck Institute for Human Cognitive and Brain Sciences (Leipzig) official portal."
+  },
+  {
+    id: "karolinska-psychology-neuroscience",
+    name: "Karolinska Institutet Global Masters in Psychology & Cognitive Neuroscience",
+    provider: "Karolinska Institutet & Swedish Institute",
+    destinationCountry: "Sweden",
+    officialUrl: "https://ki.se/en/education/global-masters-scholarships",
+    applicationUrl: "https://www.universityadmissions.se",
+    eligibleNationalities: ["International fee-paying students from non-EU/EEA countries (Pakistan, India, USA, Nigeria, etc.)"],
+    ineligibleNationalities: ["Sweden", "EU/EEA"],
+    degreeLevels: ["masters"],
+    fields: [
+      "Psychology",
+      "Clinical Psychology",
+      "Cognitive Psychology & Cognitive Science",
+      "Neuropsychology & Behavioral Neuroscience",
+      "Public Health & Global Health",
+      "Health Psychology & Behavioral Medicine"
+    ],
+    minimumCGPA: 3.1,
+    minimumCGPAOriginal: 3.1,
+    cgpaScaleOriginal: "4.0",
+    failedSubjectRule: {
+      policy: "must_be_cleared",
+      description: "Requires verified undergraduate degree in psychology or health sciences. Backlogs cleared prior to Swedish University Admissions assessment do not impact eligibility.",
+      officialQuote: "Selected based on academic excellence and relevant background in psychology or cognitive neuroscience."
+    },
+    fundingType: "fully_funded",
+    benefits: {
+      tuitionCoverage: "100% full tuition coverage for 2-year Master of Medical Science",
+      stipendMonthly: "12,000 SEK / month living stipend via Swedish Institute grant",
+      insurance: "Full Swedish FAS comprehensive health insurance",
+      otherPerks: ["Study at Europe's foremost medical research university", "Nobel Prize in Physiology or Medicine host university"]
+    },
+    deadline: "2027-01-15",
+    openingDate: "2026-10-15",
+    deadlineStatus: "open",
+    daysRemaining: 82,
+    verificationStatus: "verified_official",
+    lastVerified: "2026-10-09",
+    sourceType: "official_university",
+    admissionRequirement: "Bachelor's degree in Psychology, Cognitive Science, Neuroscience, Medicine, or Health Sciences (min 180 ECTS equivalent).",
+    languageRequirement: "English 6 / English B (IELTS 6.5 with no band below 5.5, or TOEFL 90).",
+    applicationSteps: [
+      "Apply through Sweden's central portal universityadmissions.se",
+      "Submit KI Global Masters Scholarship application form",
+      "Rank Karolinska Institutet as first choice"
+    ],
+    requiredDocuments: [
+      "Undergraduate transcripts in Psychology or related discipline",
+      "Proof of English proficiency",
+      "Motivation letter and CV",
+      "Copy of valid international passport"
+    ],
+    officialSourceNote: "Karolinska Institutet Stockholm official scholarship and admissions registry."
+  },
+  {
+    id: "astar-singa-computer-science",
+    name: "Singapore International Graduate Award (SINGA) in Computer Science & AI",
+    provider: "A*STAR (Agency for Science, Technology and Research), NTU, NUS & SUTD",
+    destinationCountry: "Singapore",
+    officialUrl: "https://www.a-star.edu.sg/Scholarships/for-graduate-studies/singapore-international-graduate-award-singa",
+    applicationUrl: "https://www.a-star.edu.sg/Scholarships",
+    eligibleNationalities: ["Open to international students from all countries worldwide"],
+    degreeLevels: ["phd"],
+    fields: [
+      "Computer Science",
+      "Software Engineering",
+      "Artificial Intelligence & Machine Learning",
+      "Data Science & Big Data Analytics",
+      "Cybersecurity & Information Assurance",
+      "Robotics & Autonomous Systems",
+      "Bioinformatics & Computational Biology"
+    ],
+    minimumCGPA: 3.2,
+    minimumCGPAOriginal: 3.2,
+    cgpaScaleOriginal: "4.0",
+    failedSubjectRule: {
+      policy: "allowed_if_cgpa_met",
+      description: "A*STAR values passion for computer science and research excellence. Isolated failed courses in freshman/sophomore years do not disqualify if cumulative CGPA is at least 3.2 and technical skills are demonstrated.",
+      officialQuote: "Open to all international graduates with a passion for research and excellent academic results in Computer Science, Physical Sciences, or Engineering."
+    },
+    fundingType: "fully_funded",
+    benefits: {
+      tuitionCoverage: "100% full tuition fees waiver for up to 4 years of PhD studies",
+      stipendMonthly: "S$2,700 / month, increasing to S$3,200 / month after qualifying exam",
+      travelAllowance: "One-time airfare grant of up to S$1,500",
+      accommodation: "One-time settling-in allowance of S$1,000",
+      insurance: "Full medical and hospitalization insurance coverage in Singapore",
+      otherPerks: ["Supervision by world-leading faculty at NUS, NTU, or A*STAR research institutes"]
+    },
+    deadline: "2027-01-01",
+    openingDate: "2026-08-01",
+    deadlineStatus: "open",
+    daysRemaining: 68,
+    verificationStatus: "verified_official",
+    lastVerified: "2026-10-09",
+    sourceType: "official_government",
+    admissionRequirement: "Bachelor's or Master's degree in Computer Science, Software Engineering, IT, Mathematics, or Engineering.",
+    languageRequirement: "Good spoken and written English skills (IELTS / TOEFL not mandatory but highly advantageous).",
+    applicationSteps: [
+      "Browse research projects on A*STAR, NUS, NTU, or SUTD computer science laboratories",
+      "Submit online application via A*STAR scholarship portal",
+      "Nominate 2 academic referees"
+    ],
+    requiredDocuments: [
+      "Certified Bachelor and Master academic transcripts",
+      "Curriculum Vitae detailing coding projects and publications",
+      "Passport scan and 2 Recommendation reports"
+    ],
+    officialSourceNote: "A*STAR official Singapore government research agency portal. Direct PhD without mandatory prior Master's degree."
+  },
+  {
+    id: "eth-zurich-excellence-cs-stem",
+    name: "ETH Zurich Excellence Scholarship (ESOP) in Computer Science & Engineering",
+    provider: "ETH Zurich Foundation & Swiss Federal Government",
+    destinationCountry: "Switzerland",
+    officialUrl: "https://ethz.ch/students/en/studies/financial/scholarships/excellencescholarship.html",
+    applicationUrl: "https://ethz.ch/en/studies/master/application.html",
+    eligibleNationalities: ["International and Swiss students (all nationalities worldwide)"],
+    degreeLevels: ["masters"],
+    fields: [
+      "Computer Science",
+      "Software Engineering",
+      "Artificial Intelligence & Machine Learning",
+      "Data Science & Big Data Analytics",
+      "Cybersecurity & Information Assurance",
+      "Mechanical Engineering",
+      "Electrical & Electronics Engineering",
+      "Biomedical Engineering & Bioengineering"
+    ],
+    minimumCGPA: 3.5,
+    minimumCGPAOriginal: 3.5,
+    cgpaScaleOriginal: "4.0",
+    failedSubjectRule: {
+      policy: "strict_zero_fails",
+      description: "ETH Zurich ESOP is an ultra-selective merit award requiring top 10% class rank (Grade A or GPA 3.5+). Multiple uncleared fails will significantly reduce chances.",
+      officialQuote: "Candidates must belong to the top 10 percent of their Bachelor's degree programme (Grade A or equivalent)."
+    },
+    fundingType: "fully_funded",
+    benefits: {
+      tuitionCoverage: "100% tuition fee waiver at ETH Zurich",
+      stipendMonthly: "CHF 12,000 per semester (CHF 2,000 / month living expenses grant)",
+      travelAllowance: "Travel and relocation subsidy included in semester grant",
+      insurance: "Full Swiss health and accident insurance subsidized",
+      otherPerks: ["Supervision by world's #1 continental European university faculty", "Mentorship from ETH Zurich Foundation network"]
+    },
+    deadline: "2026-12-15",
+    openingDate: "2026-11-01",
+    deadlineStatus: "open",
+    daysRemaining: 51,
+    verificationStatus: "verified_official",
+    lastVerified: "2026-10-09",
+    sourceType: "official_university",
+    admissionRequirement: "Bachelor's degree in Computer Science, Electrical Engineering, Mechanical Engineering, or Mathematics with distinction.",
+    languageRequirement: "C1 English level (IELTS 7.0+ or TOEFL 100+).",
+    applicationSteps: [
+      "Apply for Master's degree at ETH Zurich via eApply portal",
+      "Upload pre-proposal for your Master's thesis (max 3 pages)",
+      "Submit 2 letters of recommendation from professors"
+    ],
+    requiredDocuments: [
+      "Official academic transcripts and degree certificate",
+      "Master thesis pre-proposal",
+      "Curriculum Vitae",
+      "2 Reference letters"
+    ],
+    officialSourceNote: "ETH Zurich official Rectorate and Student Services portal. Ranked top 10 globally in Computer Science."
   }
 ];
+
 

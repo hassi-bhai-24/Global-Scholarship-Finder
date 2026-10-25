@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, HelpCircle, Check, Sparkles, Building, Globe, Award, AlertCircle } from 'lucide-react';
+import { Search, ChevronDown, HelpCircle, Check, Sparkles, Building, Globe, Award, AlertCircle, BookOpen } from 'lucide-react';
 import { COUNTRIES, CountryItem } from '../data/countries';
 import { searchUniversities, UniversityItem } from '../data/universities';
+import { searchSubjects, POPULAR_SUBJECTS, ACADEMIC_SUBJECTS, SubjectItem } from '../data/subjects';
 import { CGPAScale, StudentProfile } from '../types/scholarship';
 
 interface HeroSearchProps {
@@ -26,7 +27,15 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
   const [isUniOpen, setIsUniOpen] = useState(false);
   const uniDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Input 3: CGPA & Failed Subjects
+  // Input 3: Field / Subject of Study (120+ Subjects)
+  const [selectedField, setSelectedField] = useState<string>(
+    initialProfile?.field || 'Computer Science'
+  );
+  const [fieldQuery, setFieldQuery] = useState('');
+  const [isFieldOpen, setIsFieldOpen] = useState(false);
+  const fieldDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Input 4: CGPA & Failed Subjects
   const [cgpa, setCgpa] = useState<string>(initialProfile?.cgpa ? String(initialProfile.cgpa) : '3.6');
   const [cgpaScale, setCgpaScale] = useState<CGPAScale>(initialProfile?.cgpaScale || '4.0');
   const [failedSubjects, setFailedSubjects] = useState<string>(
@@ -47,6 +56,9 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
       if (uniDropdownRef.current && !uniDropdownRef.current.contains(event.target as Node)) {
         setIsUniOpen(false);
       }
+      if (fieldDropdownRef.current && !fieldDropdownRef.current.contains(event.target as Node)) {
+        setIsFieldOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -60,6 +72,9 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
 
   // Smart searched universities with country bias and alias matching
   const matchingUniversities = searchUniversities(uniQuery, selectedCountry);
+
+  // Filtered subjects (from 120+ subjects)
+  const filteredSubjects = searchSubjects(fieldQuery);
 
   // Current selected country item
   const currentCountryItem = COUNTRIES.find(c => c.name === selectedCountry) || COUNTRIES[0];
@@ -105,7 +120,8 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
       university: uniName,
       cgpa: parsedCgpa,
       cgpaScale,
-      failedSubjects: safeFails
+      failedSubjects: safeFails,
+      field: selectedField.trim() || undefined
     };
 
     onSearch(profile, enableLiveSearch);
@@ -120,7 +136,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
         {/* Editorial Subtitle */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-xs text-emerald-400 font-medium mb-5 shadow-sm">
           <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Three Inputs · Global Official Portals · Smart Backlog Matching</span>
+          <span>120+ Academic Majors · 4,500+ Top Universities Worldwide · Global Eligibility Matching</span>
         </div>
 
         {/* Main Title restricted to max 2 lines */}
@@ -132,15 +148,15 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
         </h1>
 
         {/* Description paragraph centered, readable */}
-        <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 mb-8 sm:mb-10 leading-relaxed font-normal">
-          Tell us who you are academically. We search worldwide government and university portals, evaluate CGPA conversion, and analyze real failed-course rules to find where you can get funded.
+        <p className="max-w-3xl mx-auto text-sm sm:text-base text-slate-300 mb-8 sm:mb-10 leading-relaxed font-normal">
+          Select from 120+ verified disciplines and 4,500+ top universities worldwide. We cross-reference official government, university, and multilateral funding registries to match your exact academic profile.
         </p>
 
-        {/* The 3-Input Form Card */}
-        <div className="w-full max-w-5xl mx-auto bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-5 sm:p-7 lg:p-8 text-left backdrop-blur-xl">
+        {/* The 4-Input Form Card */}
+        <div className="w-full max-w-6xl mx-auto bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl p-5 sm:p-7 lg:p-8 text-left backdrop-blur-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 3 Columns Desktop / 1 Column Mobile Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
+            {/* 4 Columns Desktop Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
               
               {/* INPUT 1: Country / Nationality */}
               <div className="relative" ref={countryDropdownRef}>
@@ -207,7 +223,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
               <div className="relative" ref={uniDropdownRef}>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
                   <span>2. Current / Graduated University</span>
-                  <span className="text-[11px] text-emerald-400 lowercase font-normal">mandatory</span>
+                  <span className="text-[11px] text-emerald-400 font-mono-data">4,500+ global</span>
                 </label>
 
                 <div className="relative">
@@ -245,12 +261,12 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                     )}
 
                     <div className="p-2 text-[11px] text-slate-400 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
-                      <span>Recognized institution suggestions:</span>
+                      <span>Top 4,500+ Global Universities:</span>
                       <span className="text-slate-500 font-mono-data">Acronym & Name Match</span>
                     </div>
 
                     <div className="overflow-y-auto divide-y divide-slate-800/40">
-                      {matchingUniversities.slice(0, 15).map((u, idx) => (
+                      {matchingUniversities.slice(0, 25).map((u, idx) => (
                         <button
                           key={idx}
                           type="button"
@@ -270,11 +286,110 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                 )}
               </div>
 
-              {/* INPUT 3: CGPA & Failed Subjects */}
+              {/* INPUT 3: Field of Study / Major (120+ Academic Subjects) */}
+              <div className="relative" ref={fieldDropdownRef}>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>3. Field of Study / Major</span>
+                  <span className="text-[11px] text-emerald-400 font-mono-data">120+ subjects</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => setIsFieldOpen(!isFieldOpen)}
+                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl bg-slate-950 border border-slate-700/80 hover:border-slate-600 text-slate-100 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <BookOpen className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-sm font-medium truncate">
+                      {selectedField || "All Disciplines (General Eligibility)"}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                </button>
+
+                {/* Subject Dropdown with Search & Category Grouping */}
+                {isFieldOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-80 flex flex-col">
+                    <div className="p-2 border-b border-slate-800 bg-slate-950/90">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Search 120+ subjects (e.g. food sci, psycology, cs)..."
+                          value={fieldQuery}
+                          onChange={(e) => setFieldQuery(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-y-auto divide-y divide-slate-800/40">
+                      {/* All Disciplines general option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedField('');
+                          setIsFieldOpen(false);
+                          setFieldQuery('');
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs text-left transition-colors hover:bg-slate-800 ${
+                          !selectedField ? 'bg-emerald-950/60 text-emerald-400 font-semibold' : 'text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>🌐</span>
+                          <span>All Disciplines (General Eligibility)</span>
+                        </div>
+                        {!selectedField && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                      </button>
+
+                      {filteredSubjects.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedField(s.name);
+                            setIsFieldOpen(false);
+                            setFieldQuery('');
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs text-left transition-colors hover:bg-slate-800 ${
+                            selectedField === s.name ? 'bg-emerald-950/40 text-emerald-400 font-semibold' : 'text-slate-200'
+                          }`}
+                        >
+                          <div className="flex flex-col min-w-0 pr-2">
+                            <span className="font-medium text-slate-100 truncate">{s.name}</span>
+                            <span className="text-[10px] text-slate-400 truncate">{s.category}</span>
+                          </div>
+                          {selectedField === s.name && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                        </button>
+                      ))}
+
+                      {filteredSubjects.length === 0 && (
+                        <div className="p-4 text-center text-xs text-slate-400">
+                          No exact match for "{fieldQuery}".
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedField(fieldQuery.trim());
+                              setIsFieldOpen(false);
+                            }}
+                            className="block mx-auto mt-2 text-emerald-400 underline font-semibold cursor-pointer"
+                          >
+                            Use "{fieldQuery.trim()}" as custom major
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* INPUT 4: CGPA & Failed Subjects */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    3. CGPA &amp; Failed Subjects
+                    4. CGPA &amp; Failed Subjects
                   </label>
                   <div className="relative">
                     <button
@@ -337,6 +452,44 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Quick-Select Popular Majors (1-click testing for Computer Science, Food Science, Psychology, etc.) */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+              <span className="text-slate-400 font-semibold text-[11px] mr-1">Quick-Select Major:</span>
+              {[
+                "Computer Science",
+                "Food Science",
+                "Psychology",
+                "Data Science & Big Data Analytics",
+                "Public Health & Global Health",
+                "Mechanical Engineering",
+                "Economics & Econometrics",
+                "Business Administration (MBA / BBA)",
+                "Biotechnology & Applied Microbiology",
+                "All Disciplines"
+              ].map(subj => {
+                const isSelected = subj === "All Disciplines" ? !selectedField : selectedField === subj;
+                return (
+                  <button
+                    key={subj}
+                    type="button"
+                    onClick={() => setSelectedField(subj === "All Disciplines" ? "" : subj)}
+                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer text-[11px] font-medium ${
+                      isSelected
+                        ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-sm font-semibold"
+                        : "bg-slate-950 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800/80"
+                    }`}
+                  >
+                    {subj === "Data Science & Big Data Analytics" ? "Data Science" : 
+                     subj === "Public Health & Global Health" ? "Public Health" :
+                     subj === "Economics & Econometrics" ? "Economics" :
+                     subj === "Business Administration (MBA / BBA)" ? "MBA / Business" :
+                     subj === "Biotechnology & Applied Microbiology" ? "Biotechnology" :
+                     subj}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Validation Error Message */}

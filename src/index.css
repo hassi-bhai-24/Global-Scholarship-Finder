@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+*, ::before, ::after {
+  box-sizing: border-box;
+}
+
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -13,6 +17,14 @@
     font-family: 'JetBrains Mono', monospace;
     font-variant-numeric: tabular-nums;
   }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Custom scrollbar */

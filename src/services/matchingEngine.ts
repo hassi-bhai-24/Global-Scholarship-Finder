@@ -1,4 +1,5 @@
 import { CGPAScale, MatchCategory, MatchResult, Scholarship, StudentProfile } from '../types/scholarship';
+import { findSubjectByName } from '../data/subjects';
 
 // Commonwealth country list
 const COMMONWEALTH_COUNTRIES = [
@@ -236,26 +237,47 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     }
   }
 
+  // 5. SUBJECT / DISCIPLINE EVALUATION
+  let subjectMatchStatus: 'direct_major_match' | 'open_all_fields' | 'restricted_field' = 'open_all_fields';
   if (profile.field) {
-    const fieldsStr = scholarship.fields.join(" ").toLowerCase();
-    if (fieldsStr.includes("all") || fieldsStr.includes(profile.field.toLowerCase())) {
-      whyYouMatch.push(`Eligible for majors in ${profile.field}.`);
-      confidenceScore += 5;
+    const subjectEval = evaluateSubjectMatch(scholarship, profile.field);
+    subjectMatchStatus = subjectEval.status;
+
+    if (subjectMatchStatus === 'direct_major_match') {
+      whyYouMatch.push(subjectEval.reason);
+      confidenceScore += 18;
+    } else if (subjectMatchStatus === 'open_all_fields') {
+      whyYouMatch.push(subjectEval.reason);
+      confidenceScore += 6;
+    } else {
+      whatCouldDisqualify.push(subjectEval.reason);
+      confidenceScore -= 30;
     }
   }
 
-  // 6. ADMISSION & LANGUAGE CONFIRMATION
+  // 6. DEGREE LEVEL
+  if (profile.degreeLevel && profile.degreeLevel !== 'any') {
+    if (scholarship.degreeLevels.includes(profile.degreeLevel as any)) {
+      whyYouMatch.push(`Provides direct funding for your intended ${profile.degreeLevel.toUpperCase()} degree level.`);
+      confidenceScore += 8;
+    } else {
+      whatCouldDisqualify.push(`This scholarship specifically targets ${scholarship.degreeLevels.join(", ").toUpperCase()} studies, differing from your selected target (${profile.degreeLevel.toUpperCase()}).`);
+      confidenceScore -= 20;
+    }
+  }
+
+  // 7. ADMISSION & LANGUAGE CONFIRMATION
   whatToConfirm.push(scholarship.languageRequirement);
   whatToConfirm.push(scholarship.admissionRequirement);
 
-  // 7. NEXT STEPS
+  // 8. NEXT STEPS
   nextSteps.push("Review official program guidelines at the primary source portal.");
   if (scholarship.applicationSteps && scholarship.applicationSteps.length > 0) {
     nextSteps.push(scholarship.applicationSteps[0]);
   }
   nextSteps.push("Prepare certified transcripts, statement of purpose, and academic reference letters.");
 
-  // 8. ACCURATE CATEGORY CALCULATION
+  // 9. ACCURATE CATEGORY CALCULATION
   let category: MatchCategory = 'POSSIBLE_MATCH';
 
   if (scholarship.deadlineStatus === 'closed') {
@@ -265,6 +287,8 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
   } else if (cgpaStatus === 'below') {
     category = 'LOW_MATCH';
   } else if (failedSubjectsStatus === 'disqualified') {
+    category = 'LOW_MATCH';
+  } else if (subjectMatchStatus === 'restricted_field') {
     category = 'LOW_MATCH';
   } else if (confidenceScore >= 70 && cgpaStatus !== 'borderline') {
     category = 'STRONG_MATCH';
@@ -286,7 +310,65 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     whatToConfirm,
     nextSteps,
     cgpaStatus,
-    failedSubjectsStatus
+    failedSubjectsStatus,
+    subjectMatchStatus
+  };
+}
+
+// Evaluate whether scholarship fields align with specific user subject
+export function evaluateSubjectMatch(
+  scholarship: Scholarship,
+  userSubject?: string
+): {
+  status: 'direct_major_match' | 'open_all_fields' | 'restricted_field';
+  reason: string;
+} {
+  if (!userSubject || !userSubject.trim() || userSubject.toLowerCase().includes('all disciplines') || userSubject.toLowerCase().includes('all fields')) {
+    return {
+      status: 'open_all_fields',
+      reason: 'General academic eligibility across all study programs.'
+    };
+  }
+
+  const userSubjectLower = userSubject.trim().toLowerCase();
+  const fieldsJoined = scholarship.fields.join(" ").toLowerCase();
+
+  // Check universal program fields
+  const isUniversal = fieldsJoined.includes("all fields") || fieldsJoined.includes("all one-year") || fieldsJoined.includes("all majors") || fieldsJoined.includes("all master") || fieldsJoined.includes("all degree");
+
+  // Lookup subject in database
+  const subjectObj = findSubjectByName(userSubject);
+  const termsToCheck: string[] = [
+    userSubjectLower,
+    ...(subjectObj?.aliases.map(a => a.toLowerCase()) || []),
+    ...(subjectObj?.keywords.map(k => k.toLowerCase()) || [])
+  ];
+
+  const hasDirectMatch = scholarship.fields.some(field => {
+    const fLower = field.toLowerCase();
+    return termsToCheck.some(term => {
+      if (term.length < 3) return false;
+      return fLower.includes(term) || term.includes(fLower);
+    });
+  });
+
+  if (hasDirectMatch) {
+    return {
+      status: 'direct_major_match',
+      reason: `Direct Major Match: Stated priority funding specifically covers ${userSubject}.`
+    };
+  }
+
+  if (isUniversal) {
+    return {
+      status: 'open_all_fields',
+      reason: `Universal Eligibility: Open to all academic faculties, including ${userSubject}.`
+    };
+  }
+
+  return {
+    status: 'restricted_field',
+    reason: `Field Focus: This program targets ${scholarship.fields.join(", ")}, which does not match ${userSubject}.`
   };
 }
 
@@ -298,10 +380,19 @@ export function sortAndFilterMatches(
     degreeLevel?: string;
     destination?: string;
     searchQuery?: string;
+    subjectFilter?: string;
     sortBy?: 'best_match' | 'deadline_soonest' | 'fully_funded' | 'recently_verified';
   }
 ): MatchResult[] {
   let filtered = [...matches];
+
+  // Subject / Field filter
+  if (filter.subjectFilter && filter.subjectFilter !== 'all' && !filter.subjectFilter.toLowerCase().includes('all disciplines')) {
+    filtered = filtered.filter(m => {
+      const matchRes = evaluateSubjectMatch(m.scholarship, filter.subjectFilter);
+      return matchRes.status !== 'restricted_field';
+    });
+  }
 
   // Category filter
   if (filter.category && filter.category !== 'all') {
@@ -340,6 +431,11 @@ export function sortAndFilterMatches(
   const sortBy = filter.sortBy || 'best_match';
   filtered.sort((a, b) => {
     if (sortBy === 'best_match') {
+      // Prioritize direct major matches
+      const aDirect = a.subjectMatchStatus === 'direct_major_match' ? 1 : 0;
+      const bDirect = b.subjectMatchStatus === 'direct_major_match' ? 1 : 0;
+      if (bDirect !== aDirect) return bDirect - aDirect;
+
       const rankOrder: Record<MatchCategory, number> = {
         'STRONG_MATCH': 5,
         'LIKELY_MATCH': 4,

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Search, Globe, Filter, ExternalLink, ShieldCheck, ChevronRight, Bookmark } from 'lucide-react';
 import { Scholarship } from '../types/scholarship';
 import { VERIFIED_SCHOLARSHIPS } from '../data/scholarships';
+import { ACADEMIC_SUBJECTS } from '../data/subjects';
+import { evaluateSubjectMatch } from '../services/matchingEngine';
 
 interface GlobalDirectoryViewProps {
   onOpenDetails: (scholarship: Scholarship) => void;
@@ -15,11 +17,18 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
   isSaved
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('all');
   const [degreeFilter, setDegreeFilter] = useState('all');
   const [destinationFilter, setDestinationFilter] = useState('all');
   const [fundingFilter, setFundingFilter] = useState('all');
 
   const filteredScholarships = VERIFIED_SCHOLARSHIPS.filter(s => {
+    // Subject filter
+    if (subjectFilter !== 'all') {
+      const matchRes = evaluateSubjectMatch(s, subjectFilter);
+      if (matchRes.status === 'restricted_field') return false;
+    }
+
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -78,14 +87,55 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
           />
         </div>
 
+        {/* Quick Major Filter Strip */}
+        <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/70 rounded-xl border border-slate-800 text-xs">
+          <span className="text-slate-400 font-semibold text-[11px] mr-1">Filter Major:</span>
+          {[
+            { id: 'all', label: 'All Majors' },
+            { id: 'Computer Science', label: 'Computer Science' },
+            { id: 'Food Science', label: 'Food Science' },
+            { id: 'Psychology', label: 'Psychology' },
+            { id: 'Data Science & Big Data Analytics', label: 'Data Science' },
+            { id: 'Public Health & Global Health', label: 'Public Health' },
+            { id: 'Mechanical Engineering', label: 'Mechanical Eng' },
+            { id: 'Economics & Econometrics', label: 'Economics' }
+          ].map(chip => (
+            <button
+              key={chip.id}
+              onClick={() => setSubjectFilter(chip.id)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                subjectFilter === chip.id
+                  ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 shadow-sm font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent'
+              }`}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
         {/* Filter Dropdowns */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label className="block text-slate-400 mb-1">Major / Subject (120+)</label>
+            <select
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="all">🎓 All Academic Disciplines</option>
+              {ACADEMIC_SUBJECTS.map(s => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-slate-400 mb-1">Destination Country</label>
             <select
               value={destinationFilter}
               onChange={(e) => setDestinationFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none cursor-pointer"
             >
               <option value="all">All Destinations</option>
               {destinations.map(d => (
@@ -99,7 +149,7 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
             <select
               value={degreeFilter}
               onChange={(e) => setDegreeFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none cursor-pointer"
             >
               <option value="all">All Degree Levels</option>
               <option value="bachelors">Bachelor's</option>
@@ -113,7 +163,7 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
             <select
               value={fundingFilter}
               onChange={(e) => setFundingFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none cursor-pointer"
             >
               <option value="all">All Funding Types</option>
               <option value="fully_funded">Fully Funded</option>

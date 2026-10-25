@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Sparkles, Check, HelpCircle } from 'lucide-react';
 import { StudentProfile } from '../types/scholarship';
 
+import { ACADEMIC_SUBJECTS } from '../data/subjects';
+
 interface OptionalEnrichmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -110,16 +112,23 @@ export const OptionalEnrichmentModal: React.FC<OptionalEnrichmentModalProps> = (
 
           {/* Academic Field / Major */}
           <div>
-            <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Target Field of Study / Major
+            <label className="block font-semibold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <span>Target Field of Study / Major</span>
+              <span className="text-[10px] text-emerald-400 font-mono-data">120+ Subjects Indexed</span>
             </label>
             <input
               type="text"
+              list="modal-subjects-list"
               value={field}
               onChange={(e) => setField(e.target.value)}
-              placeholder="e.g. Computer Science, Public Policy, Biomedical Engineering, Business"
+              placeholder="e.g. Computer Science, Food Science, Psychology, Data Science..."
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:border-emerald-500"
             />
+            <datalist id="modal-subjects-list">
+              {ACADEMIC_SUBJECTS.map(s => (
+                <option key={s.id} value={s.name}>{s.category}</option>
+              ))}
+            </datalist>
           </div>
 
           {/* Target Destinations */}

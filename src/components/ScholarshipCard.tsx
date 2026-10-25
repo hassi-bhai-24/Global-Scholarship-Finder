@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, Bookmark, CheckCircle2, AlertTriangle, Clock, ShieldCheck, ChevronRight, BookmarkCheck, Info } from 'lucide-react';
+import { ExternalLink, Bookmark, CheckCircle2, AlertTriangle, Clock, ShieldCheck, ChevronRight, BookmarkCheck, Info, BookOpen } from 'lucide-react';
 import { MatchCategory, MatchResult, Scholarship } from '../types/scholarship';
 
 interface ScholarshipCardProps {
@@ -144,6 +144,19 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
             {formatFundingType(scholarship.fundingType)}
           </div>
         </div>
+
+        {/* Major / Field of Study Alignment Badge */}
+        {match.subjectMatchStatus === 'direct_major_match' ? (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] font-semibold mb-3">
+            <BookOpen className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>🎯 Direct Major Match · Priority Field Funding</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950/80 border border-slate-800 text-slate-400 text-[11px] mb-3 max-w-full truncate">
+            <BookOpen className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <span className="truncate">Fields: {scholarship.fields[0]}</span>
+          </div>
+        )}
 
         {/* Benefits snippet */}
         <p className="text-xs text-slate-300 mb-4 line-clamp-2 leading-relaxed">
