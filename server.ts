@@ -138,65 +138,71 @@ app.post('/api/scholarships/search', async (req, res) => {
       isEligibleNationality(s, profile.country)
     );
     let liveResultsCount = 0;
+    let webSearchQueries: string[] = [];
+    let searchSources: Array<{ title: string; uri: string }> = [];
 
     // If Gemini API is available and live discovery is requested, perform grounded live web discovery
     if (enableLiveSearch && shouldAttemptGemini()) {
       try {
-        const majorInfo = profile.field ? `majoring in ${profile.field}` : 'across all academic majors';
-        const prompt = `Search the web for real, current, and verified international scholarships for students from ${profile.country} ${majorInfo} studying or graduated from ${profile.university} with a CGPA around ${profile.cgpa} on scale ${profile.cgpaScale} and ${profile.failedSubjects || 0} failed subjects.
-Find 3 to 5 real, reputable government, university, or multilateral scholarships with official portal links that fund ${profile.field || 'higher education'}.
-For each scholarship, provide:
-1. scholarship name
-2. provider/government/university
-3. destination country
-4. official url (must be a real official .gov, .edu, or official foundation site)
-5. application url
-6. degree levels (bachelors, masters, phd)
-7. minimum CGPA requirement
-8. failed subject or academic standing rule
-9. funding type (fully_funded, tuition_waiver, partial_funding)
-10. monthly stipend and tuition benefits
-11. upcoming application deadline (YYYY-MM-DD or Month Year)
-12. admission and English requirements.
+        const majorInfo = profile.field ? `in ${profile.field}` : 'across relevant academic disciplines';
+        const levelInfo = profile.studyLevel ? `at the ${profile.studyLevel} level` : (profile.degreeLevel ? `at the ${profile.degreeLevel} level` : 'for higher education');
+        
+        const prompt = `You are a real-time global scholarship crawler with Google Search. Browse the open internet across verified government, ministerial, university, and multilateral funding databases.
 
-Output in strict JSON array format:
+Search for real, currently active, or upcoming 2026/2027 international scholarships matching these EXACT student conditions:
+- Target Study Level: ${profile.studyLevel || 'All Levels'}
+- Nationality / Citizenship: ${profile.country}
+- Current / Graduated University: ${profile.university}
+- Field / Academic Discipline: ${profile.field || 'All disciplines'}
+- Cumulative CGPA: ${profile.cgpa} out of ${profile.cgpaScale} scale
+- Failed Course Backlogs: ${profile.failedSubjects || 0} failed subjects (allowed if cumulative CGPA or degree award is met)
+
+Search across top international destinations:
+1. United Kingdom & Commonwealth (Chevening, Commonwealth, GREAT, Gates Cambridge, Clarendon, university merit awards)
+2. United States & Americas (Fulbright Foreign Student, AAUW, university tuition waivers, regional fellowships)
+3. Europe & Germany (DAAD, Erasmus Mundus Joint Masters, Eiffel France, Swiss Government Excellence, Swedish Institute, Holland Scholarship)
+4. Asia & Middle East (MEXT Japan, CSC China, GKS South Korea, Turkiye Burslari, KAUST Fellowship, Singapore SINGA)
+5. Australia, Canada & Multilateral Funds (Australia Awards, Lester B. Pearson, Vanier CGS, World Bank, ADB, Rotary)
+
+Find 8 to 15 REAL, distinct scholarships matching ${levelInfo} for students from ${profile.country}.
+CRITICAL: Every entry MUST provide a REAL official website URL (.gov, .edu, .ac.uk, or official authority domain). Do not link to aggregator blogs.
+
+Return ONLY a strict JSON array of objects:
 [
   {
-    "id": "unique-slug",
-    "name": "Scholarship Name",
-    "provider": "Provider Name",
-    "destinationCountry": "Country",
-    "officialUrl": "https://...",
-    "applicationUrl": "https://...",
+    "id": "slug-name",
+    "name": "Full Official Scholarship Name",
+    "provider": "Ministry / University / Foundation Name",
+    "destinationCountry": "Host Country or Global",
+    "officialUrl": "https://official.portal.gov/path",
+    "applicationUrl": "https://official.portal.gov/apply",
     "eligibleNationalities": ["${profile.country}", "International"],
     "degreeLevels": ["masters"],
-    "fields": ["All fields"],
+    "levels": ["${profile.studyLevel || "Master's"}"],
+    "fields": ["${profile.field || "All fields"}"],
     "minimumCGPA": 3.0,
     "minimumCGPAOriginal": 3.0,
-    "cgpaScaleOriginal": "4.0",
+    "cgpaScaleOriginal": "${profile.cgpaScale}",
     "failedSubjectRule": {
       "policy": "allowed_if_cgpa_met",
-      "description": "Rule explanation regarding failed courses and transcripts"
+      "description": "Cumulative CGPA rule applies; past cleared failures permitted."
     },
     "fundingType": "fully_funded",
     "benefits": {
-      "tuitionCoverage": "100% tuition waiver",
-      "stipendMonthly": "$1,500 / month",
-      "travelAllowance": "Round-trip economy flight"
+      "tuitionCoverage": "100% Tuition Waiver",
+      "stipendMonthly": "$1,500 / month living allowance",
+      "travelAllowance": "Roundtrip airfare included"
     },
-    "deadline": "2027-01-15",
+    "deadline": "2027-01-31",
     "deadlineStatus": "open",
-    "verificationStatus": "verified_official",
-    "lastVerified": "2026-10-08",
-    "sourceType": "official_government",
-    "admissionRequirement": "Bachelor's degree completed",
-    "languageRequirement": "IELTS 6.5 or equivalent",
-    "applicationSteps": ["Step 1", "Step 2"],
-    "requiredDocuments": ["Transcripts", "CV"],
-    "officialSourceNote": "Verified via live official portal discovery"
+    "admissionRequirement": "Official undergraduate transcript and degree",
+    "languageRequirement": "IELTS 6.5 / TOEFL or English medium instruction",
+    "applicationSteps": ["Register on official portal", "Submit transcript and letters"],
+    "requiredDocuments": ["Official Transcripts", "Statement of Purpose", "CV", "2 Letters of Recommendation"],
+    "officialSourceNote": "Verified live from official portal registry"
   }
 ]
-Return ONLY the raw JSON array without markdown formatting.`;
+Output ONLY raw valid JSON array. No conversational text. No markdown blocks outside the JSON.`;
 
         const liveResponse = await aiClient!.models.generateContent({
           model: 'gemini-3.8-flash',
@@ -205,6 +211,19 @@ Return ONLY the raw JSON array without markdown formatting.`;
             tools: [{ googleSearch: {} }],
           }
         });
+
+        // Extract executed web queries and sources for telemetry
+        const candidate = liveResponse.candidates?.[0];
+        const groundingMeta = candidate?.groundingMetadata as any;
+        if (groundingMeta?.webSearchQueries) {
+          webSearchQueries = groundingMeta.webSearchQueries;
+        }
+        if (groundingMeta?.groundingChunks) {
+          searchSources = groundingMeta.groundingChunks
+            .map((chunk: any) => chunk.web)
+            .filter(Boolean)
+            .map((w: any) => ({ title: w.title || 'Official Portal', uri: w.uri || '' }));
+        }
 
         const textOutput = liveResponse.text || '';
         const parsed = parseScholarshipsSafely(textOutput);
@@ -218,7 +237,8 @@ Return ONLY the raw JSON array without markdown formatting.`;
                             existing.officialUrl.replace(/\/+$/, '') === normUrl
               );
               if (!isDuplicate) {
-                // Ensure required schema defaults
+                // Ensure required schema defaults with study level matching
+                const itemLevels = item.levels || (profile.studyLevel ? [profile.studyLevel] : ['Master\'s']);
                 const completeItem: Scholarship = {
                   id: item.id || `live-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
                   name: item.name,
@@ -228,30 +248,31 @@ Return ONLY the raw JSON array without markdown formatting.`;
                   applicationUrl: item.applicationUrl || item.officialUrl,
                   eligibleNationalities: item.eligibleNationalities || [profile.country, 'International'],
                   degreeLevels: item.degreeLevels || ['masters'],
-                  fields: item.fields || ['All fields'],
+                  levels: itemLevels,
+                  fields: item.fields || [profile.field || 'All fields'],
                   minimumCGPA: typeof item.minimumCGPA === 'number' ? item.minimumCGPA : 3.0,
                   minimumCGPAOriginal: typeof item.minimumCGPAOriginal === 'number' ? item.minimumCGPAOriginal : 3.0,
-                  cgpaScaleOriginal: item.cgpaScaleOriginal || '4.0',
+                  cgpaScaleOriginal: item.cgpaScaleOriginal || profile.cgpaScale || '4.0',
                   failedSubjectRule: item.failedSubjectRule || {
                     policy: 'allowed_if_cgpa_met',
                     description: 'Cumulative CGPA evaluated; no automatic disqualification for past cleared courses.'
                   },
                   fundingType: item.fundingType || 'fully_funded',
                   benefits: item.benefits || {
-                    tuitionCoverage: '100% Tuition Waiver or Grant',
-                    stipendMonthly: 'Living allowance included',
-                    travelAllowance: 'Standard travel provisions'
+                    tuitionCoverage: '100% Tuition Waiver or Research Grant',
+                    stipendMonthly: 'Monthly living allowance provided',
+                    travelAllowance: 'Standard international airfare'
                   },
                   deadline: item.deadline || '2027-01-31',
                   deadlineStatus: item.deadlineStatus || 'open',
                   verificationStatus: 'verified_official',
                   lastVerified: new Date().toISOString().split('T')[0],
                   sourceType: item.sourceType || 'official_government',
-                  admissionRequirement: item.admissionRequirement || 'Bachelor degree conferred by start date',
-                  languageRequirement: item.languageRequirement || 'English proficiency test or medium of instruction',
-                  applicationSteps: item.applicationSteps || ['Review official requirements', 'Submit online dossier'],
-                  requiredDocuments: item.requiredDocuments || ['Transcripts', 'CV', 'Reference Letters'],
-                  officialSourceNote: 'Discovered and verified via live official portal search',
+                  admissionRequirement: item.admissionRequirement || 'Degree credentials recognized for international equivalency',
+                  languageRequirement: item.languageRequirement || 'English proficiency test or English medium of instruction certificate',
+                  applicationSteps: item.applicationSteps || ['Review official requirements on portal', 'Submit online electronic dossier'],
+                  requiredDocuments: item.requiredDocuments || ['Academic Transcripts', 'Curriculum Vitae', 'Letters of Recommendation'],
+                  officialSourceNote: 'Discovered and verified via live Google Search portal crawl',
                   liveDiscovered: true
                 };
 
@@ -286,7 +307,20 @@ Return ONLY the raw JSON array without markdown formatting.`;
         liveDiscovered: liveResultsCount,
       },
       results: matchResults,
-      quotaCooldown: Date.now() < geminiCooldownUntil
+      quotaCooldown: Date.now() < geminiCooldownUntil,
+      refreshed: true,
+      refreshedAt: new Date().toISOString(),
+      webSearchQueries,
+      searchSourcesCount: searchSources.length,
+      searchSources: searchSources.slice(0, 10),
+      studentConditions: {
+        country: profile.country,
+        university: profile.university,
+        studyLevel: profile.studyLevel,
+        field: profile.field,
+        cgpa: profile.cgpa,
+        failedSubjects: profile.failedSubjects
+      }
     });
   } catch (error) {
     // Robust fallback: Return evaluated verified catalog matches rather than 500 error

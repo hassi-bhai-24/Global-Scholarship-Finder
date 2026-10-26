@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, HelpCircle, Check, Sparkles, Building, Globe, Award, AlertCircle, BookOpen } from 'lucide-react';
+import { Search, ChevronDown, HelpCircle, Check, Sparkles, Building, Globe, Award, AlertCircle, BookOpen, GraduationCap, RefreshCw } from 'lucide-react';
 import { COUNTRIES, CountryItem } from '../data/countries';
 import { searchUniversities, UniversityItem } from '../data/universities';
 import { searchSubjects, POPULAR_SUBJECTS, ACADEMIC_SUBJECTS, SubjectItem } from '../data/subjects';
+import { STUDY_LEVEL_OPTIONS, getShortLevelLabel } from '../data/studyLevels';
 import { CGPAScale, StudentProfile } from '../types/scholarship';
 
 interface HeroSearchProps {
@@ -26,6 +27,13 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
   );
   const [isUniOpen, setIsUniOpen] = useState(false);
   const uniDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Mandatory Option Under Uni Name: Study Level
+  const [selectedStudyLevel, setSelectedStudyLevel] = useState<string>(
+    initialProfile?.studyLevel || "Master's"
+  );
+  const [isStudyLevelOpen, setIsStudyLevelOpen] = useState(false);
+  const studyLevelDropdownRef = useRef<HTMLDivElement>(null);
 
   // Input 3: Field / Subject of Study (120+ Subjects)
   const [selectedField, setSelectedField] = useState<string>(
@@ -55,6 +63,9 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
       }
       if (uniDropdownRef.current && !uniDropdownRef.current.contains(event.target as Node)) {
         setIsUniOpen(false);
+      }
+      if (studyLevelDropdownRef.current && !studyLevelDropdownRef.current.contains(event.target as Node)) {
+        setIsStudyLevelOpen(false);
       }
       if (fieldDropdownRef.current && !fieldDropdownRef.current.contains(event.target as Node)) {
         setIsFieldOpen(false);
@@ -112,12 +123,29 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
       return;
     }
 
+    if (!selectedStudyLevel || !selectedStudyLevel.trim()) {
+      setValidationError('Study level is mandatory. Please select your target study level under university name.');
+      return;
+    }
+
     const parsedFails = parseInt(failedSubjects, 10);
     const safeFails = isNaN(parsedFails) || parsedFails < 0 ? 0 : parsedFails;
+
+    const mapStudyLevelToDegreeLevel = (lvl: string): 'bachelors' | 'masters' | 'phd' | 'exchange' | 'postdoc' | 'any' => {
+      const l = lvl.toLowerCase();
+      if (l.includes('bachelor') || l.includes('undergraduate')) return 'bachelors';
+      if (l.includes('master')) return 'masters';
+      if (l.includes('phd') || l.includes('doctor')) return 'phd';
+      if (l.includes('postdoc') || l.includes('fellowship')) return 'postdoc';
+      if (l.includes('intermediate') || l.includes('high school')) return 'bachelors';
+      return 'any';
+    };
 
     const profile: StudentProfile = {
       country: selectedCountry,
       university: uniName,
+      studyLevel: selectedStudyLevel,
+      degreeLevel: mapStudyLevelToDegreeLevel(selectedStudyLevel),
       cgpa: parsedCgpa,
       cgpaScale,
       failedSubjects: safeFails,
@@ -217,6 +245,21 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                     </div>
                   </div>
                 )}
+
+                {/* Target Destination under Country */}
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-slate-300">
+                      <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Target Destination</span>
+                    </span>
+                    <span className="text-[11px] text-emerald-400/80 lowercase font-normal">global</span>
+                  </label>
+                  <div className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-xs text-slate-200 flex items-center justify-between">
+                    <span className="truncate">Worldwide (All Eligible Portals)</span>
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  </div>
+                </div>
               </div>
 
               {/* INPUT 2: University */}
@@ -253,7 +296,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                           setSelectedUniversity(uniQuery.trim());
                           setIsUniOpen(false);
                         }}
-                        className="w-full px-3.5 py-2.5 text-xs text-left bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 flex items-center justify-between border-b border-slate-800 transition-colors"
+                        className="w-full px-3.5 py-2.5 text-xs text-left bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 flex items-center justify-between border-b border-slate-800 transition-colors cursor-pointer"
                       >
                         <span className="font-semibold truncate">🎓 Select "{uniQuery.trim()}"</span>
                         <span className="text-[10px] text-emerald-400 font-mono-data shrink-0 ml-2">Any Institution Worldwide ✓</span>
@@ -275,7 +318,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                             setUniQuery(u.name);
                             setIsUniOpen(false);
                           }}
-                          className="w-full px-3.5 py-2.5 text-xs text-left transition-colors hover:bg-slate-800 text-slate-200 flex flex-col"
+                          className="w-full px-3.5 py-2.5 text-xs text-left transition-colors hover:bg-slate-800 text-slate-200 flex flex-col cursor-pointer"
                         >
                           <span className="font-semibold text-slate-100">{u.name}</span>
                           <span className="text-[11px] text-slate-400">{u.city ? `${u.city}, ` : ''}{u.country}</span>
@@ -284,6 +327,77 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                     </div>
                   </div>
                 )}
+
+                {/* MANDATORY STUDY LEVEL OPTION DIRECTLY UNDER THE UNI NAME */}
+                <div className="mt-3" ref={studyLevelDropdownRef}>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-emerald-300">
+                      <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Study Level</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-300 bg-emerald-950/90 border border-emerald-700/80 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
+                      mandatory *
+                    </span>
+                  </label>
+
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsStudyLevelOpen(!isStudyLevelOpen);
+                        setIsUniOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-950 border transition-all text-left focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer min-h-[44px] ${
+                        !selectedStudyLevel
+                          ? 'border-amber-500/80 text-amber-300 shadow-sm shadow-amber-500/20'
+                          : 'border-emerald-600/70 hover:border-emerald-500 text-slate-100 bg-emerald-950/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span className="text-xs sm:text-sm font-semibold truncate text-white">
+                          {selectedStudyLevel || 'Select Study Level (Mandatory) *'}
+                        </span>
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1.5" />
+                    </button>
+
+                    {/* Study Level Dropdown */}
+                    {isStudyLevelOpen && (
+                      <div className="absolute z-50 left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-72 flex flex-col">
+                        <div className="p-2.5 text-[11px] text-slate-400 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+                          <span className="font-semibold text-emerald-400">Target Study Level:</span>
+                          <span className="text-[10px] text-emerald-300 font-mono-data bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800">
+                            Required *
+                          </span>
+                        </div>
+                        <div className="overflow-y-auto divide-y divide-slate-800/40">
+                          {STUDY_LEVEL_OPTIONS.map((lvl) => (
+                            <button
+                              key={lvl}
+                              type="button"
+                              onClick={() => {
+                                setSelectedStudyLevel(lvl);
+                                setIsStudyLevelOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs text-left transition-colors hover:bg-slate-800 cursor-pointer min-h-[42px] ${
+                                selectedStudyLevel === lvl
+                                  ? 'bg-emerald-950/60 text-emerald-300 font-semibold'
+                                  : 'text-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <GraduationCap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                <span className="truncate">{lvl}</span>
+                              </div>
+                              {selectedStudyLevel === lvl && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* INPUT 3: Field of Study / Major (120+ Academic Subjects) */}
@@ -383,6 +497,21 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                     </div>
                   </div>
                 )}
+
+                {/* Discipline Coverage under Field of Study */}
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-slate-300">
+                      <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Discipline Coverage</span>
+                    </span>
+                    <span className="text-[11px] text-emerald-400/80 lowercase font-normal">120+ fields</span>
+                  </label>
+                  <div className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-xs text-slate-200 flex items-center justify-between">
+                    <span className="truncate">{selectedField ? `Major: ${selectedField}` : 'All Disciplines Open'}</span>
+                    <span className="text-[10px] text-emerald-400 font-mono-data shrink-0 ml-1">Verified ✓</span>
+                  </div>
+                </div>
               </div>
 
               {/* INPUT 4: CGPA & Failed Subjects */}
@@ -449,6 +578,21 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                     <span className="absolute right-3 top-3.5 text-slate-500 text-xs pointer-events-none">
                       fails
                     </span>
+                  </div>
+                </div>
+
+                {/* Backlog Evaluation under CGPA */}
+                <div className="mt-3">
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-slate-300">
+                      <Award className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Backlog Evaluation</span>
+                    </span>
+                    <span className="text-[11px] text-emerald-400/80 lowercase font-normal">automated</span>
+                  </label>
+                  <div className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-xs text-slate-200 flex items-center justify-between">
+                    <span className="truncate">{parseInt(failedSubjects, 10) > 0 ? `${failedSubjects} Backlogs Analyzed` : 'Clean Academic Standing'}</span>
+                    <span className="text-[10px] text-emerald-400 font-mono-data shrink-0 ml-1">Rules Checked ✓</span>
                   </div>
                 </div>
               </div>
@@ -523,6 +667,12 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                 <Search className="w-4 h-4 text-slate-950 stroke-[3]" />
                 <span>FIND MY SCHOLARSHIPS</span>
               </button>
+
+              {/* Auto-Refresh default notice */}
+              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Default auto-refresh: Purges cache &amp; re-browses worldwide portals on every search</span>
+              </div>
             </div>
           </form>
         </div>

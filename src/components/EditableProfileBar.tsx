@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Sparkles, Filter, RefreshCw, SlidersHorizontal, Check, Building, BookOpen } from 'lucide-react';
+import { Edit2, Sparkles, Filter, RefreshCw, SlidersHorizontal, Check, Building, BookOpen, GraduationCap } from 'lucide-react';
 import { StudentProfile } from '../types/scholarship';
 import { COUNTRIES } from '../data/countries';
 import { searchUniversities } from '../data/universities';
 import { ACADEMIC_SUBJECTS } from '../data/subjects';
+import { STUDY_LEVEL_OPTIONS } from '../data/studyLevels';
 
 interface EditableProfileBarProps {
   profile: StudentProfile;
@@ -21,6 +22,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
   const [isEditingInline, setIsEditingInline] = useState(false);
   const [country, setCountry] = useState(profile.country);
   const [university, setUniversity] = useState(profile.university);
+  const [studyLevel, setStudyLevel] = useState(profile.studyLevel || "Master's");
   const [field, setField] = useState(profile.field || 'Computer Science');
   const [cgpa, setCgpa] = useState(String(profile.cgpa));
   const [scale, setScale] = useState(profile.cgpaScale);
@@ -30,6 +32,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
   useEffect(() => {
     setCountry(profile.country);
     setUniversity(profile.university);
+    setStudyLevel(profile.studyLevel || "Master's");
     setField(profile.field || 'Computer Science');
     setCgpa(String(profile.cgpa));
     setScale(profile.cgpaScale);
@@ -47,6 +50,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
       ...profile,
       country,
       university: university.trim() || profile.university,
+      studyLevel: studyLevel.trim() || profile.studyLevel,
       field: field.trim() || undefined,
       cgpa: isNaN(parsedCgpa) ? profile.cgpa : parsedCgpa,
       cgpaScale: scale,
@@ -73,6 +77,13 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 max-w-[280px] truncate" title={profile.university}>
               <span className="text-slate-400 text-xs">Uni:</span>
               <span className="font-semibold truncate">{profile.university}</span>
+            </div>
+
+            {/* Study Level Badge Under / Next to Uni */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-emerald-850 text-emerald-300">
+              <GraduationCap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-slate-400 text-xs">Level:</span>
+              <span className="font-semibold text-white">{profile.studyLevel || "Master's"}</span>
             </div>
 
             {/* Major / Field of Study Badge */}
@@ -140,7 +151,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-slate-300 mb-1">Country</label>
               <select
@@ -163,6 +174,23 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
                 placeholder="e.g. The Islamia University of Bahawalpur"
                 className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                <span>Study Level</span>
+                <span className="text-[10px] text-emerald-400 lowercase">mandatory</span>
+              </label>
+              <select
+                value={studyLevel}
+                onChange={(e) => setStudyLevel(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                required
+              >
+                {STUDY_LEVEL_OPTIONS.map(lvl => (
+                  <option key={lvl} value={lvl}>{lvl}</option>
+                ))}
+              </select>
             </div>
 
             <div>

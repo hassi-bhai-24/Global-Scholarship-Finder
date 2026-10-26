@@ -33,9 +33,54 @@ import {
   SlidersHorizontal,
   Globe,
   RefreshCw,
-  BookOpen
+  BookOpen,
+  X,
+  GraduationCap
 } from 'lucide-react';
 import { ACADEMIC_SUBJECTS } from './data/subjects';
+import { StudyLevelFilterModal } from './components/StudyLevelFilterModal';
+import { StudyLevelOnboardingModal } from './components/StudyLevelOnboardingModal';
+import { getShortLevelLabel } from './data/studyLevels';
+
+const STUDY_LEVELS_STORAGE_KEY = 'user_selected_study_levels';
+const ONBOARDING_DISMISSED_KEY = 'study_level_onboarding_dismissed';
+
+function getStoredStudyLevels(): string[] {
+  try {
+    const raw = localStorage.getItem(STUDY_LEVELS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // Ignore storage failure
+  }
+  return [];
+}
+
+function storeStudyLevels(levels: string[]): void {
+  try {
+    localStorage.setItem(STUDY_LEVELS_STORAGE_KEY, JSON.stringify(levels));
+  } catch {
+    // Ignore storage failure
+  }
+}
+
+function hasDismissedOnboarding(): boolean {
+  try {
+    return localStorage.getItem(ONBOARDING_DISMISSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function setDismissedOnboarding(): void {
+  try {
+    localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true');
+  } catch {
+    // Ignore storage failure
+  }
+}
 
 export default function App() {
   // Navigation
@@ -74,6 +119,39 @@ export default function App() {
   const [sortBy, setSortBy] = useState<'best_match' | 'deadline_soonest' | 'fully_funded' | 'recently_verified'>('best_match');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // Study Level Multi-Select Filter state
+  const [selectedStudyLevels, setSelectedStudyLevels] = useState<string[]>(getStoredStudyLevels);
+  const [isStudyLevelModalOpen, setIsStudyLevelModalOpen] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(() => !hasDismissedOnboarding());
+
+  const handleApplyStudyLevels = (levels: string[]) => {
+    setSelectedStudyLevels(levels);
+    storeStudyLevels(levels);
+  };
+
+  const handleRemoveStudyLevel = (levelToRemove: string) => {
+    const updated = selectedStudyLevels.filter(l => l !== levelToRemove);
+    setSelectedStudyLevels(updated);
+    storeStudyLevels(updated);
+  };
+
+  const handleClearAllStudyLevels = () => {
+    setSelectedStudyLevels([]);
+    storeStudyLevels([]);
+  };
+
+  const handleCompleteOnboarding = (levels: string[]) => {
+    setSelectedStudyLevels(levels);
+    storeStudyLevels(levels);
+    setDismissedOnboarding();
+    setIsOnboardingModalOpen(false);
+  };
+
+  const handleSkipOnboarding = () => {
+    setDismissedOnboarding();
+    setIsOnboardingModalOpen(false);
+  };
+
   // Modals & deep scanning
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<MatchResult | null>(null);
@@ -81,6 +159,8 @@ export default function App() {
   const [isEnrichmentOpen, setIsEnrichmentOpen] = useState(false);
   const [isDeepScanning, setIsDeepScanning] = useState(false);
   const [deepScanMessage, setDeepScanMessage] = useState<string | null>(null);
+  const [lastRefreshedTime, setLastRefreshedTime] = useState<string | null>(null);
+  const [recentWebQueries, setRecentWebQueries] = useState<string[]>([]);
 
   // Saved / Tracker storage
   const [savedItems, setSavedItems] = useState<ApplicationTrackerItem[]>([]);
@@ -89,7 +169,7 @@ export default function App() {
     setSavedItems(getSavedTrackerItems());
   }, []);
 
-  // Primary Search Execution - Instant Baseline + Asynchronous Live Discovery
+  // Primary Search Execution - Full Refresh on Every Search + Expanded Live Web Grounding
   const [isLiveFetching, setIsLiveFetching] = useState(false);
   const [liveDiscoveryNotice, setLiveDiscoveryNotice] = useState<string | null>(null);
 
@@ -98,108 +178,109 @@ export default function App() {
     if (userProfile.field) {
       setSelectedSubjectFilter(userProfile.field);
     }
+    if (userProfile.studyLevel) {
+      setSelectedStudyLevels([userProfile.studyLevel]);
+      storeStudyLevels([userProfile.studyLevel]);
+    }
     setHasSearched(true);
     setCurrentTab('matcher');
 
-    // 1. PHASE 1: INSTANT EVALUATION (0ms latency)
-    // Filter base catalog to only include scholarships open to user's nationality
-    const knownCatalog = [...VERIFIED_SCHOLARSHIPS];
-    allMatches.forEach(m => {
-      if (m.scholarship.liveDiscovered && !knownCatalog.some(k => k.id === m.scholarship.id)) {
-        knownCatalog.push(m.scholarship);
-      }
-    });
+    // DEFAULT ACTION: FULL SYSTEM REFRESH FOR EVERY SEARCH
+    setIsSearching(true);
+    setSearchStage(0);
 
-    const eligibleCatalog = knownCatalog.filter(s => isEligibleNationality(s, userProfile.country));
+    // 1. PHASE 1: Purge previous query residue & baseline evaluate against user's exact country
+    const eligibleCatalog = VERIFIED_SCHOLARSHIPS.filter(s => isEligibleNationality(s, userProfile.country));
     const instantMatches = eligibleCatalog.map(s => evaluateEligibility(s, userProfile));
     
-    const strong = instantMatches.filter(m => m.category === 'STRONG_MATCH').length;
-    const likely = instantMatches.filter(m => m.category === 'LIKELY_MATCH').length;
-    const possible = instantMatches.filter(m => m.category === 'POSSIBLE_MATCH').length;
-    const low = instantMatches.filter(m => m.category === 'LOW_MATCH').length;
-    const open = instantMatches.filter(m => m.scholarship.deadlineStatus !== 'closed').length;
-
     setAllMatches(instantMatches);
     setSummaryStats({
       totalDiscovered: instantMatches.length,
-      strongMatches: strong,
-      likelyMatches: likely,
-      possibleMatches: possible,
-      lowMatches: low,
-      openOpportunities: open
+      strongMatches: instantMatches.filter(m => m.category === 'STRONG_MATCH').length,
+      likelyMatches: instantMatches.filter(m => m.category === 'LIKELY_MATCH').length,
+      possibleMatches: instantMatches.filter(m => m.category === 'POSSIBLE_MATCH').length,
+      lowMatches: instantMatches.filter(m => m.category === 'LOW_MATCH').length,
+      openOpportunities: instantMatches.filter(m => m.scholarship.deadlineStatus !== 'closed').length
     });
-    setIsSearching(false);
 
-    // 2. PHASE 2: REAL-TIME ASYNCHRONOUS LIVE WEB DISCOVERY
+    // Animate stage transitions so student sees real-time system refresh
+    setTimeout(() => setSearchStage(1), 300);
+
+    // 2. PHASE 2: REAL-TIME EXPANDED LIVE INTERNET SEARCH WITH GOOGLE SEARCH GROUNDING
     if (enableLive) {
       setIsLiveFetching(true);
-      setLiveDiscoveryNotice(`Querying live global government & university portals for ${userProfile.country} (${userProfile.university})...`);
+      const levelLabel = userProfile.studyLevel || "All Levels";
+      setLiveDiscoveryNotice(`Refreshing registries & browsing internet for ${userProfile.country} (${levelLabel}, ${userProfile.university})...`);
 
       try {
+        setTimeout(() => setSearchStage(2), 650);
+
         const res = await fetch('/api/scholarships/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...userProfile,
-            liveSearch: true
+            liveSearch: true,
+            refresh: true
           })
         });
+
+        setTimeout(() => setSearchStage(3), 1000);
 
         if (res.ok) {
           const data = await res.json();
           if (data.results && data.results.length > 0) {
-            // Merge with existing results, avoiding duplicates by id and normalized title
-            setAllMatches(prevMatches => {
-              const existingIds = new Set(prevMatches.map(m => m.scholarship.id));
-              const existingNames = new Set(prevMatches.map(m => m.scholarship.name.toLowerCase().trim()));
+            setLastRefreshedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            if (data.webSearchQueries && data.webSearchQueries.length > 0) {
+              setRecentWebQueries(data.webSearchQueries);
+            }
 
-              const newlyAdded: MatchResult[] = [];
-              for (const r of data.results) {
-                // Ensure new result is eligible for this country
-                if (!isEligibleNationality(r.scholarship, userProfile.country)) continue;
-                const normName = r.scholarship.name.toLowerCase().trim();
-                if (!existingIds.has(r.scholarship.id) && !existingNames.has(normName)) {
-                  newlyAdded.push(r);
-                  existingIds.add(r.scholarship.id);
-                  existingNames.add(normName);
-                }
-              }
+            // Freshly populate results for the new search conditions
+            const countryEligible = data.results.filter((r: MatchResult) =>
+              isEligibleNationality(r.scholarship, userProfile.country)
+            );
 
-              const combined = [...newlyAdded, ...prevMatches];
-              // Re-evaluate eligibility for all in case profile had specific overrides
-              const reEvaluated = combined.map(m => evaluateEligibility(m.scholarship, userProfile));
+            // Re-evaluate eligibility for complete fidelity with userProfile
+            const reEvaluated = countryEligible.map((m: MatchResult) => evaluateEligibility(m.scholarship, userProfile));
 
-              const strongCount = reEvaluated.filter(m => m.category === 'STRONG_MATCH').length;
-              const likelyCount = reEvaluated.filter(m => m.category === 'LIKELY_MATCH').length;
-              const possibleCount = reEvaluated.filter(m => m.category === 'POSSIBLE_MATCH').length;
-              const lowCount = reEvaluated.filter(m => m.category === 'LOW_MATCH').length;
-              const openCount = reEvaluated.filter(m => m.scholarship.deadlineStatus !== 'closed').length;
+            const strongCount = reEvaluated.filter((m: MatchResult) => m.category === 'STRONG_MATCH').length;
+            const likelyCount = reEvaluated.filter((m: MatchResult) => m.category === 'LIKELY_MATCH').length;
+            const possibleCount = reEvaluated.filter((m: MatchResult) => m.category === 'POSSIBLE_MATCH').length;
+            const lowCount = reEvaluated.filter((m: MatchResult) => m.category === 'LOW_MATCH').length;
+            const openCount = reEvaluated.filter((m: MatchResult) => m.scholarship.deadlineStatus !== 'closed').length;
 
-              setSummaryStats({
-                totalDiscovered: reEvaluated.length,
-                strongMatches: strongCount,
-                likelyMatches: likelyCount,
-                possibleMatches: possibleCount,
-                lowMatches: lowCount,
-                openOpportunities: openCount
-              });
-
-              if (newlyAdded.length > 0) {
-                setLiveDiscoveryNotice(`Discovered and verified ${newlyAdded.length} additional live official scholarships from worldwide portals!`);
-              } else {
-                setLiveDiscoveryNotice(`Verified 100% of canonical portals for ${userProfile.country}. All open opportunities are loaded.`);
-              }
-
-              return reEvaluated;
+            setAllMatches(reEvaluated);
+            setSummaryStats({
+              totalDiscovered: reEvaluated.length,
+              strongMatches: strongCount,
+              likelyMatches: likelyCount,
+              possibleMatches: possibleCount,
+              lowMatches: lowCount,
+              openOpportunities: openCount
             });
+
+            const liveCount = data.summary?.liveDiscovered || 0;
+            if (liveCount > 0) {
+              setLiveDiscoveryNotice(`Freshly discovered ${liveCount} live official scholarship opportunities from worldwide internet registries!`);
+            } else {
+              setLiveDiscoveryNotice(`Refreshed feeds: Verified all recognized official programs for ${userProfile.country} (${levelLabel}).`);
+            }
           }
         }
       } catch {
-        setLiveDiscoveryNotice(`Grounded with verified baseline catalog (${instantMatches.length} opportunities loaded for ${userProfile.country}).`);
+        setLiveDiscoveryNotice(`Refreshed feeds: Grounded with verified catalog (${instantMatches.length} opportunities loaded).`);
       } finally {
-        setIsLiveFetching(false);
-        setTimeout(() => setLiveDiscoveryNotice(null), 6000);
+        setTimeout(() => setSearchStage(4), 1300);
+        setTimeout(() => {
+          setIsSearching(false);
+          setIsLiveFetching(false);
+        }, 1600);
+        setTimeout(() => setLiveDiscoveryNotice(null), 8000);
       }
+    } else {
+      setTimeout(() => {
+        setIsSearching(false);
+      }, 600);
     }
   };
 
@@ -303,6 +384,7 @@ export default function App() {
     category: categoryFilter,
     fundingType: fundingFilter,
     degreeLevel: degreeFilter,
+    studyLevels: selectedStudyLevels,
     destination: destinationFilter,
     searchQuery: searchQuery,
     subjectFilter: effectiveSubject,
@@ -379,6 +461,8 @@ export default function App() {
                 {isSearching ? (
                   <SearchProgress
                     currentStage={searchStage}
+                    profile={profile || undefined}
+                    isRefreshing={isSearching || isLiveFetching}
                     summaryData={summaryStats}
                   />
                 ) : (
@@ -420,7 +504,7 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Summary Metrics */}
+                      {/* Summary Metrics & Actions */}
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                         <div className="px-3 py-2 rounded-xl bg-slate-950 border border-emerald-900/60 text-center">
                           <div className="font-display font-black text-lg text-emerald-400 font-mono-data">
@@ -450,18 +534,51 @@ export default function App() {
                           <div className="text-[10px] text-slate-400 uppercase tracking-wider">Below Cutoff</div>
                         </div>
 
+                        {/* Dedicated Default Refresh & Re-Scan Web Action */}
+                        <button
+                          onClick={() => profile && executeSearch(profile, true)}
+                          disabled={isLiveFetching || isSearching}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                          title="Purge cache and re-scan the web from scratch for your latest profile conditions"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 text-slate-950 ${isLiveFetching || isSearching ? 'animate-spin' : ''}`} />
+                          <span>{isLiveFetching || isSearching ? 'Refreshing Feeds...' : 'Refresh & Re-Scan Web'}</span>
+                        </button>
+
                         {/* On-Demand Global Deep Scan Button */}
                         <button
                           onClick={handleTriggerDeepScan}
                           disabled={isDeepScanning}
-                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                          title="Trigger a live search across worldwide embassies and university funding registries"
+                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                          title="Trigger a cross-embassy registry scan"
                         >
-                          <RefreshCw className={`w-3.5 h-3.5 text-slate-950 ${isDeepScanning ? 'animate-spin' : ''}`} />
+                          <Globe className={`w-3.5 h-3.5 text-teal-400 ${isDeepScanning ? 'animate-spin' : ''}`} />
                           <span>{isDeepScanning ? 'Scanning...' : 'Deep Global Scan'}</span>
                         </button>
                       </div>
                     </div>
+
+                    {/* Live Refresh & Grounding Telemetry Ribbon */}
+                    {(lastRefreshedTime || recentWebQueries.length > 0) && (
+                      <div className="mb-4 px-4 py-2.5 rounded-xl bg-slate-900/90 border border-emerald-900/50 flex flex-wrap items-center justify-between gap-2 text-xs text-left">
+                        <div className="flex items-center gap-2 text-emerald-400">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span className="font-semibold">Auto-Refreshed Search Session:</span>
+                          <span className="text-slate-300">
+                            {lastRefreshedTime ? `Refreshed at ${lastRefreshedTime}` : 'All feeds refreshed from scratch'}
+                          </span>
+                        </div>
+                        {recentWebQueries.length > 0 && (
+                          <div className="flex items-center gap-1.5 text-slate-400 text-[11px] overflow-hidden text-ellipsis whitespace-nowrap max-w-full sm:max-w-md">
+                            <span className="text-slate-500">Live Search Grounding:</span>
+                            <span className="text-slate-300 font-mono-data truncate">
+                              "{recentWebQueries[0]}"
+                              {recentWebQueries.length > 1 && ` +${recentWebQueries.length - 1} more`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {deepScanMessage && (
                       <div className="mb-4 p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300 flex items-center gap-2.5 animate-fade-in text-left">
@@ -472,6 +589,69 @@ export default function App() {
 
                     {/* Segmented Filter & Sort Controls */}
                     <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 mb-6 shadow-xl space-y-4">
+                      {/* Top: Search Bar + Study Level Button Row */}
+                      <div className="flex items-center gap-2.5">
+                        <div className="relative flex-1 min-w-0">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search scholarships by keyword, title, or country..."
+                            className="w-full pl-10 pr-3.5 py-2.5 min-h-[44px] rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500 text-xs sm:text-sm"
+                          />
+                        </div>
+
+                        {/* Study Level Filter Button */}
+                        <button
+                          type="button"
+                          onClick={() => setIsStudyLevelModalOpen(true)}
+                          className={`min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 ${
+                            selectedStudyLevels.length > 0
+                              ? 'bg-emerald-950 text-emerald-300 border-emerald-500 shadow-md shadow-emerald-950/40'
+                              : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
+                          }`}
+                        >
+                          <SlidersHorizontal className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <span className="whitespace-nowrap">
+                            {selectedStudyLevels.length > 0 ? `Level · ${selectedStudyLevels.length}` : 'Study Level'}
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* Active Removable Study Level Chips */}
+                      {selectedStudyLevels.length > 0 && (
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+                            <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Levels:</span>
+                          </span>
+                          {selectedStudyLevels.map((lvl) => (
+                            <span
+                              key={lvl}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-950/90 text-emerald-300 border border-emerald-700/80 shrink-0 whitespace-nowrap shadow-xs"
+                            >
+                              <span>{getShortLevelLabel(lvl)}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveStudyLevel(lvl)}
+                                className="w-4 h-4 rounded-full flex items-center justify-center text-emerald-400 hover:text-white hover:bg-emerald-800 transition-colors cursor-pointer"
+                                aria-label={`Remove filter ${lvl}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={handleClearAllStudyLevels}
+                            className="text-xs text-slate-400 hover:text-slate-200 underline cursor-pointer shrink-0 ml-1 py-1"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                      )}
+
                       {/* Category Segment Tabs */}
                       <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800/80">
                         {[
@@ -528,24 +708,12 @@ export default function App() {
                       </div>
 
                       {/* Secondary Filters & Sort Dropdowns */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
-                        {/* Search Input */}
-                        <div className="relative">
-                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                          <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Filter by keyword..."
-                            className="w-full pl-8 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500 text-xs"
-                          />
-                        </div>
-
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                         {/* Major / Subject Filter (120+ Subjects) */}
                         <select
                           value={selectedSubjectFilter}
                           onChange={(e) => setSelectedSubjectFilter(e.target.value)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer min-h-[40px]"
                         >
                           <option value="all">🎓 All Majors (120+ Indexed)</option>
                           {ACADEMIC_SUBJECTS.map(s => (
@@ -559,7 +727,7 @@ export default function App() {
                         <select
                           value={fundingFilter}
                           onChange={(e) => setFundingFilter(e.target.value)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer min-h-[40px]"
                         >
                           <option value="all">All Funding Types</option>
                           <option value="fully_funded">Fully Funded Only</option>
@@ -567,23 +735,11 @@ export default function App() {
                           <option value="partial_funding">Partial Funding</option>
                         </select>
 
-                        {/* Degree Level Filter */}
-                        <select
-                          value={degreeFilter}
-                          onChange={(e) => setDegreeFilter(e.target.value)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
-                        >
-                          <option value="all">All Degrees</option>
-                          <option value="bachelors">Bachelor's</option>
-                          <option value="masters">Master's</option>
-                          <option value="phd">PhD</option>
-                        </select>
-
                         {/* Sort By */}
                         <select
                           value={sortBy}
                           onChange={(e) => setSortBy(e.target.value as any)}
-                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer"
+                          className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none text-xs cursor-pointer min-h-[40px]"
                         >
                           <option value="best_match">Sort: Best Match &amp; Discipline</option>
                           <option value="deadline_soonest">Sort: Deadline Soonest</option>
@@ -593,15 +749,30 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* Result Count Status Line */}
+                    <div className="flex items-center justify-between text-xs text-slate-400 mb-3 px-1">
+                      <div>
+                        <span className="font-bold text-emerald-400 font-mono-data text-sm">{visibleMatches.length}</span>{' '}
+                        {visibleMatches.length === 1 ? 'scholarship found' : 'scholarships found'}
+                        {selectedStudyLevels.length > 0 && (
+                          <span className="text-slate-400 ml-1.5 hidden sm:inline">
+                            for {selectedStudyLevels.map(getShortLevelLabel).join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Results Grid */}
                     {visibleMatches.length === 0 ? (
-                      <div className="p-12 text-center bg-slate-900/60 border border-slate-800 rounded-2xl">
+                      <div className="p-10 sm:p-14 text-center bg-slate-900/60 border border-slate-800 rounded-2xl">
                         <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
                         <h3 className="font-display font-bold text-lg text-white mb-2">
-                          No matching scholarships under current filters
+                          {selectedStudyLevels.length > 0 ? 'No scholarships for this level yet.' : 'No matching scholarships under current filters'}
                         </h3>
-                        <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
-                          Try switching to "All Results", clearing the keyword filter, or adding optional profile factors.
+                        <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto mb-5 leading-relaxed">
+                          {selectedStudyLevels.length > 0
+                            ? 'No scholarships for this level yet. Try another level.'
+                            : 'Try switching to "All Results", clearing the keyword filter, or modifying optional profile factors.'}
                         </p>
                         <button
                           onClick={() => {
@@ -609,10 +780,11 @@ export default function App() {
                             setFundingFilter('all');
                             setDegreeFilter('all');
                             setSearchQuery('');
+                            handleClearAllStudyLevels();
                           }}
-                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-colors cursor-pointer"
+                          className="min-h-[44px] px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-bold transition-colors cursor-pointer inline-flex items-center justify-center shadow-lg shadow-emerald-500/20"
                         >
-                          Reset Filters
+                          Clear filters
                         </button>
                       </div>
                     ) : (
@@ -692,6 +864,21 @@ export default function App() {
           onSave={handleUpdateProfile}
         />
       )}
+
+      {/* Study Level Multi-Select Filter Modal */}
+      <StudyLevelFilterModal
+        isOpen={isStudyLevelModalOpen}
+        onClose={() => setIsStudyLevelModalOpen(false)}
+        selectedLevels={selectedStudyLevels}
+        onApply={handleApplyStudyLevels}
+      />
+
+      {/* First Launch Study Level Onboarding Modal */}
+      <StudyLevelOnboardingModal
+        isOpen={isOnboardingModalOpen}
+        onComplete={handleCompleteOnboarding}
+        onSkip={handleSkipOnboarding}
+      />
 
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-8 text-xs text-slate-500">

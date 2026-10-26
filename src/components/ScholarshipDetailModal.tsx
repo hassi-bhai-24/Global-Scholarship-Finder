@@ -168,8 +168,8 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
             <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-800/80 text-slate-200 border border-slate-700/60 font-medium">
               {scholarship.destinationCountry}
             </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-800/80 text-slate-200 border border-slate-700/60 capitalize font-medium">
-              {scholarship.degreeLevels.join(" / ")}
+            <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-800/80 text-slate-200 border border-slate-700/60 font-medium">
+              {(scholarship.levels && scholarship.levels.length > 0 ? scholarship.levels : scholarship.degreeLevels).join(" / ")}
             </span>
             <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-800/80 text-emerald-300 border border-slate-700/60 font-mono-data font-medium">
               Deadline: {scholarship.deadline}

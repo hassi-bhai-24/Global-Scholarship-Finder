@@ -1,5 +1,6 @@
 import { CGPAScale, MatchCategory, MatchResult, Scholarship, StudentProfile } from '../types/scholarship';
 import { findSubjectByName } from '../data/subjects';
+import { matchesStudyLevels } from '../data/studyLevels';
 
 // Commonwealth country list
 const COMMONWEALTH_COUNTRIES = [
@@ -226,8 +227,16 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     whyYouMatch.push(`Undergraduate credentials from ${profile.university.trim()} are recognized for international degree equivalence.`);
   }
 
-  // 5. OPTIONAL PROFILE ENRICHMENT SENSITIVITY
-  if (profile.degreeLevel && profile.degreeLevel !== 'any') {
+  // 5. STUDY LEVEL SENSITIVITY (MANDATORY SELECTION UNDER UNIVERSITY NAME)
+  if (profile.studyLevel) {
+    if (matchesStudyLevels(scholarship, [profile.studyLevel])) {
+      whyYouMatch.push(`Provides verified funding for your target ${profile.studyLevel} program.`);
+      confidenceScore += 10;
+    } else {
+      whatCouldDisqualify.push(`This scholarship targets academic levels differing from your selected target (${profile.studyLevel}).`);
+      confidenceScore -= 20;
+    }
+  } else if (profile.degreeLevel && profile.degreeLevel !== 'any') {
     if (scholarship.degreeLevels.includes(profile.degreeLevel as any)) {
       whyYouMatch.push(`Provides direct funding for your intended ${profile.degreeLevel.toUpperCase()} degree level.`);
       confidenceScore += 8;
@@ -378,6 +387,7 @@ export function sortAndFilterMatches(
     category?: string;
     fundingType?: string;
     degreeLevel?: string;
+    studyLevels?: string[];
     destination?: string;
     searchQuery?: string;
     subjectFilter?: string;
@@ -385,6 +395,11 @@ export function sortAndFilterMatches(
   }
 ): MatchResult[] {
   let filtered = [...matches];
+
+  // Study level multi-select filter (OR logic across selected levels)
+  if (filter.studyLevels && filter.studyLevels.length > 0 && !filter.studyLevels.includes('All Levels')) {
+    filtered = filtered.filter(m => matchesStudyLevels(m.scholarship, filter.studyLevels!));
+  }
 
   // Subject / Field filter
   if (filter.subjectFilter && filter.subjectFilter !== 'all' && !filter.subjectFilter.toLowerCase().includes('all disciplines')) {

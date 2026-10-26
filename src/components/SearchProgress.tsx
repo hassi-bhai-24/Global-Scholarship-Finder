@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, Sparkles, Database, Search, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import { CheckCircle2, Loader2, RefreshCw, Globe, Sparkles, Database, Search, ShieldCheck, GraduationCap } from 'lucide-react';
+import { StudentProfile } from '../types/scholarship';
 
 interface SearchProgressProps {
   currentStage: number; // 0 to 4
   onComplete?: () => void;
+  profile?: StudentProfile;
+  isRefreshing?: boolean;
   summaryData?: {
     totalDiscovered: number;
     strongMatches: number;
@@ -14,46 +17,55 @@ interface SearchProgressProps {
 
 const STAGES = [
   {
-    title: "Normalizing Profile & GPA Scale",
-    desc: "Converting cumulative GPA to standard equivalent and indexing failed subject count."
+    title: "Refreshing Global Feed & Purging Stale Cache",
+    desc: "Clearing previous query state and initializing a fresh, real-time internet browsing session."
   },
   {
-    title: "Querying Worldwide Official Scholarship Portals",
-    desc: "Connecting to official government commissions, ministerial funds, and university schemes."
+    title: "Browsing Worldwide Government & University Portals",
+    desc: "Executing live search grounding across verified ministries, embassies, and multilateral agencies."
   },
   {
-    title: "Executing Academic Eligibility Matching Engine",
-    desc: "Evaluating bilateral nationality accords, CGPA thresholds, and backlogs policy."
+    title: "Aligning Study Level, Major & University Equivalence",
+    desc: "Matching exact target degree level, departmental funding, and institutional credentials."
   },
   {
-    title: "Deduplicating Records & Verifying Source Authority",
-    desc: "Discarding secondary aggregator copies; prioritizing primary host institutions."
+    title: "Evaluating CGPA Thresholds & Backlog Policies",
+    desc: "Analyzing stated minimum grade requirements and official cleared-course rules."
   },
   {
-    title: "Ranking Opportunities by Match Confidence",
-    desc: "Synthesizing 'Why You Match', possible disqualifiers, and application next steps."
+    title: "Deduplicating & Ranking by Match Confidence",
+    desc: "Prioritizing authoritative official portals (.gov, .edu) and synthesizing custom match reasons."
   }
 ];
 
 export const SearchProgress: React.FC<SearchProgressProps> = ({
   currentStage,
+  profile,
+  isRefreshing = true,
   summaryData
 }) => {
   return (
-    <div className="max-w-2xl mx-auto my-12 p-8 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-md text-left">
+    <div className="max-w-2xl mx-auto my-12 p-6 sm:p-8 bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-md text-left">
       <div className="flex items-center justify-between border-b border-slate-800 pb-5 mb-6">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <h3 className="font-display font-bold text-xl text-white">
-              Discovering Global Opportunities
+            <h3 className="font-display font-bold text-xl text-white flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-emerald-400 animate-spin" />
+              <span>Refreshing &amp; Searching Internet</span>
             </h3>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Grounded against verified international education portals
+            {profile ? (
+              <span>
+                Live internet sweep for <strong className="text-slate-200">{profile.country}</strong> · <strong className="text-emerald-400">{profile.studyLevel || "All Levels"}</strong> · <strong className="text-slate-200">{profile.field || "All Majors"}</strong>
+              </span>
+            ) : (
+              'Grounded against verified international education portals'
+            )}
           </p>
         </div>
-        <div className="text-xs font-mono-data text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-3 py-1 rounded-full">
+        <div className="text-xs font-mono-data text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-3 py-1 rounded-full shrink-0">
           Stage {Math.min(currentStage + 1, STAGES.length)} / {STAGES.length}
         </div>
       </div>

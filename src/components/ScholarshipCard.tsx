@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ExternalLink, Bookmark, CheckCircle2, AlertTriangle, Clock, ShieldCheck, ChevronRight, BookmarkCheck, Info, BookOpen } from 'lucide-react';
+import { ExternalLink, Bookmark, CheckCircle2, AlertTriangle, Clock, ShieldCheck, ChevronRight, BookmarkCheck, Info, BookOpen, GraduationCap } from 'lucide-react';
 import { MatchCategory, MatchResult, Scholarship } from '../types/scholarship';
+import { getScholarshipStudyLevels } from '../data/studyLevels';
 
 interface ScholarshipCardProps {
   match: MatchResult;
@@ -17,6 +18,10 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
 }) => {
   const { scholarship, category, confidenceScore, whyYouMatch, whatCouldDisqualify, whatToConfirm, nextSteps } = match;
   const [showExplanationSnippet, setShowExplanationSnippet] = useState(false);
+
+  const cardLevels = scholarship.levels && scholarship.levels.length > 0
+    ? scholarship.levels
+    : getScholarshipStudyLevels(scholarship);
 
   // Category visual mapping
   const getCategoryTheme = (cat: MatchCategory) => {
@@ -96,13 +101,13 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
       {/* Top Bar: Provider + Category + Confidence */}
       <div>
         <div className="flex items-start justify-between gap-3 mb-3">
-          {/* Metadata line without static pills */}
+          {/* Metadata line */}
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
             <span className="font-semibold text-slate-300">{scholarship.provider}</span>
             <span aria-hidden="true" className="text-slate-700">·</span>
             <span>{scholarship.destinationCountry}</span>
             <span aria-hidden="true" className="text-slate-700">·</span>
-            <span className="capitalize">{scholarship.degreeLevels.join(" / ")}</span>
+            <span className="font-medium text-emerald-400/90">{cardLevels.join(" / ")}</span>
           </div>
 
           {/* Save bookmark button */}
@@ -117,6 +122,19 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
           >
             {isSaved ? <BookmarkCheck className="w-4 h-4 text-emerald-400" /> : <Bookmark className="w-4 h-4" />}
           </button>
+        </div>
+
+        {/* Level Badges matching filter names */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+          {cardLevels.map((lvl) => (
+            <span
+              key={lvl}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950/70 text-emerald-300 border border-emerald-800/80 shadow-xs"
+            >
+              <GraduationCap className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span>{lvl}</span>
+            </span>
+          ))}
         </div>
 
         {/* Title */}

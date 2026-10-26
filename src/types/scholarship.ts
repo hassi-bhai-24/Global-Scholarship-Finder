@@ -3,6 +3,7 @@ export type CGPAScale = '4.0' | '5.0' | '10.0' | '100%';
 export interface StudentProfile {
   country: string;
   university: string;
+  studyLevel?: string;
   cgpa: number;
   cgpaScale: CGPAScale;
   failedSubjects: number;
@@ -35,6 +36,7 @@ export interface Scholarship {
   ineligibleNationalities?: string[];
   eligibleUniversities?: string[]; // ["All"] or specific names
   degreeLevels: Array<'bachelors' | 'masters' | 'phd' | 'postdoc' | 'exchange'>;
+  levels?: string[];
   fields: string[]; // ["All fields"] or specific
   minimumCGPA: number; // normalized to 4.0 scale
   minimumCGPAOriginal: number;
