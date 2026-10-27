@@ -1,4 +1,4 @@
-import { Scholarship, VerificationSourceInfo } from '../types/scholarship';
+import type { Scholarship, VerificationSourceInfo } from '../types/scholarship.ts';
 
 export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
   {
@@ -2511,7 +2511,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     officialSourceNote: "Verified against NIIED official Global Korea Scholarship guidelines."
   },
   {
-    id: "daad-epos-germany",
+    id: "daad-epos-bmz-fellowship",
     name: "DAAD EPOS (Development-Related Postgraduate Courses)",
     provider: "German Academic Exchange Service (DAAD) / Federal Ministry for Economic Cooperation (BMZ)",
     destinationCountry: "Germany",

@@ -1,6 +1,6 @@
-import { CGPAScale, MatchCategory, MatchResult, Scholarship, StudentProfile } from '../types/scholarship';
-import { findSubjectByName } from '../data/subjects';
-import { matchesStudyLevels } from '../data/studyLevels';
+import type { CGPAScale, MatchCategory, MatchResult, Scholarship, StudentProfile } from '../types/scholarship.ts';
+import { findSubjectByName } from '../data/subjects.ts';
+import { matchesStudyLevels } from '../data/studyLevels.ts';
 
 // Commonwealth country list
 const COMMONWEALTH_COUNTRIES = [
@@ -142,99 +142,210 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     confidenceScore += 5;
   }
 
-  // 2. EVALUATE CGPA SENSITIVITY
-  const cgpaDiff = normStudentCGPA - minCGPA;
-  if (cgpaDiff >= 0.3) {
-    cgpaStatus = 'exceeds';
-    whyYouMatch.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) substantially exceeds the minimum cutoff (${minCGPA.toFixed(2)}/4.0), making your application highly competitive.`);
-    confidenceScore += 25;
-  } else if (cgpaDiff >= 0) {
-    cgpaStatus = 'meets';
-    whyYouMatch.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) meets the stated academic threshold of ${minCGPA.toFixed(2)}/4.0.`);
-    confidenceScore += 15;
-  } else if (cgpaDiff >= -0.15) {
-    cgpaStatus = 'borderline';
-    whatToConfirm.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) is marginally below the preferred benchmark of ${minCGPA.toFixed(2)}/4.0; strong GRE scores, publications, or motivated essays can compensate.`);
-    confidenceScore += 2;
-  } else {
-    cgpaStatus = 'below';
-    whatCouldDisqualify.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) does not meet the minimum required academic cutoff (${minCGPA.toFixed(2)}/4.0).`);
-    confidenceScore -= 35;
-  }
+  // 2. CHECK IF PRE-UNIVERSITY APPLICANT
+  const isPreUniStudent = !!(
+    profile.isPreUniversity ||
+    (profile.studyLevel && (
+      profile.studyLevel.toLowerCase().includes('undergraduate') ||
+      profile.studyLevel.toLowerCase().includes('intermediate') ||
+      profile.studyLevel.toLowerCase().includes('12th') ||
+      profile.studyLevel.toLowerCase().includes('bachelor')
+    ) && (profile.university === 'No university experience' || !profile.university || profile.preUniResult !== undefined))
+  );
 
-  // 3. EVALUATE FAILED SUBJECTS INTELLIGENTLY
-  const failedCount = profile.failedSubjects || 0;
-  const policy = scholarship.failedSubjectRule.policy;
+  const scholarshipSupportsUndergrad = scholarship.degreeLevels.includes('bachelors') ||
+    (scholarship.levels && scholarship.levels.some(l => 
+      l.toLowerCase().includes('undergraduate') || 
+      l.toLowerCase().includes('bachelor') || 
+      l.toLowerCase().includes('intermediate') ||
+      l.toLowerCase().includes('high school')
+    ));
 
-  if (failedCount === 0) {
-    failedSubjectsStatus = 'safe';
-    whyYouMatch.push("Pristine transcript with zero failed courses fulfills strict academic standing requirements.");
-    confidenceScore += 12;
-  } else if (failedCount >= 1 && failedCount <= 2) {
-    // 1-2 backlogs
-    switch (policy) {
-      case 'strict_zero_fails':
-        failedSubjectsStatus = 'disqualified';
-        whatCouldDisqualify.push(`This ultra-competitive award favors flawless academic transcripts. Having ${failedCount} failed course(s) places you at a disadvantage against candidates with clean transcripts.`);
-        confidenceScore -= 25;
-        break;
-      case 'no_active_backlogs':
-      case 'must_be_cleared':
+  if (isPreUniStudent) {
+    if (!scholarshipSupportsUndergrad) {
+      // Disqualify graduate/PhD only programs for pre-university students
+      whatCouldDisqualify.push("Requires an existing Bachelor's/Master's degree; this award is strictly for graduate/postdoctoral research.");
+      confidenceScore -= 45;
+      cgpaStatus = 'below';
+    } else {
+      whyYouMatch.push("Directly funds Undergraduate / Bachelor's studies for pre-university and school-leaving applicants.");
+      confidenceScore += 18;
+
+      // Evaluate Board Result
+      if (profile.preUniResult) {
+        const pur = profile.preUniResult;
+        if (pur.percentage !== undefined) {
+          if (pur.percentage >= 80) {
+            cgpaStatus = 'exceeds';
+            whyYouMatch.push(`Your board score of ${pur.percentage}% exceeds international undergraduate admission cutoffs.`);
+            confidenceScore += 25;
+          } else if (pur.percentage >= 70) {
+            cgpaStatus = 'meets';
+            whyYouMatch.push(`Your board score of ${pur.percentage}% meets standard undergraduate entry criteria.`);
+            confidenceScore += 18;
+          } else if (pur.percentage >= 60) {
+            cgpaStatus = 'borderline';
+            whatToConfirm.push(`Board score (${pur.percentage}%) meets baseline eligibility; standard tests (SAT/ACT/IELTS) can bolster profile.`);
+            confidenceScore += 5;
+          } else {
+            cgpaStatus = 'below';
+            whatCouldDisqualify.push(`Board score (${pur.percentage}%) is below competitive merit cutoffs.`);
+            confidenceScore -= 20;
+          }
+        } else if (pur.grades) {
+          cgpaStatus = 'exceeds';
+          whyYouMatch.push(`A-Level profile (${pur.grades}) fulfills competitive undergraduate entry requirements.`);
+          confidenceScore += 25;
+        } else if (pur.ibPoints !== undefined) {
+          if (pur.ibPoints >= 34) {
+            cgpaStatus = 'exceeds';
+            whyYouMatch.push(`IB Diploma score (${pur.ibPoints}/45) qualifies for international merit admissions.`);
+            confidenceScore += 25;
+          } else {
+            cgpaStatus = 'meets';
+            whyYouMatch.push(`IB Diploma score (${pur.ibPoints}/45) fulfills entry requirements.`);
+            confidenceScore += 15;
+          }
+        } else if (pur.highSchoolGpa !== undefined) {
+          if (pur.highSchoolGpa >= 3.5) {
+            cgpaStatus = 'exceeds';
+            whyYouMatch.push(`High School GPA (${pur.highSchoolGpa}/4.0) satisfies top-tier entry criteria.`);
+            confidenceScore += 25;
+          } else {
+            cgpaStatus = 'meets';
+            whyYouMatch.push(`High School GPA meets standard entry requirements.`);
+            confidenceScore += 15;
+          }
+        }
+      } else {
+        const cgpaDiff = normStudentCGPA - minCGPA;
+        if (cgpaDiff >= 0) {
+          cgpaStatus = 'meets';
+          confidenceScore += 15;
+        } else {
+          cgpaStatus = 'borderline';
+          confidenceScore += 5;
+        }
+      }
+
+      // Pre-university failed papers / compartments
+      if (profile.preUniResult?.hasFailedPapers) {
         failedSubjectsStatus = 'cleared_required';
-        whyYouMatch.push(`Earlier failed courses are acceptable once cleared; ensure your ${failedCount} backlog(s) are officially passed before departure.`);
-        whatToConfirm.push(`Verify that all ${failedCount} retaken subjects are marked as passed on your final degree transcript.`);
-        confidenceScore += 5;
-        break;
-      case 'allowed_if_cgpa_met':
-      default:
-        failedSubjectsStatus = 'safe';
-        whyYouMatch.push(`The provider focuses on overall cumulative CGPA rather than isolated course failures. Your ${failedCount} failed subject(s) do not disqualify you.`);
-        confidenceScore += 8;
-        break;
-    }
-  } else if (failedCount >= 3 && failedCount <= 5) {
-    // 3-5 backlogs
-    switch (policy) {
-      case 'strict_zero_fails':
-        failedSubjectsStatus = 'disqualified';
-        whatCouldDisqualify.push(`Having ${failedCount} failed subjects will likely disqualify you from this top-tier merit award where unblemished records are expected.`);
-        confidenceScore -= 35;
-        break;
-      case 'no_active_backlogs':
-      case 'must_be_cleared':
-        failedSubjectsStatus = 'cleared_required';
-        whatCouldDisqualify.push(`You have ${failedCount} failed subjects. Official rules require every backlog to be remediated and an unencumbered degree conferred.`);
-        whatToConfirm.push(`Confirm timeline to clear all ${failedCount} backlogs before the scholarship visa issuance window.`);
-        confidenceScore -= 10;
-        break;
-      case 'allowed_if_cgpa_met':
-      default:
-        failedSubjectsStatus = 'cleared_required';
-        whyYouMatch.push(`Cumulative CGPA rule applies: if your overall grade point average is maintained, your ${failedCount} failed courses remain permissible.`);
-        whatToConfirm.push(`Check if host department imposes a cap on the total number of course retakes allowed.`);
+        whatToConfirm.push("Verify that all compartment/improvement papers are officially cleared on your final board certificate.");
         confidenceScore -= 5;
-        break;
+      } else {
+        failedSubjectsStatus = 'safe';
+        whyYouMatch.push("Clean board examination record with zero compartments or failed papers.");
+        confidenceScore += 12;
+      }
+
+      // Pre-university university context: Never penalize missing university
+      if (!profile.university || profile.university === 'No university experience') {
+        whyYouMatch.push("Direct entry open for secondary school / college leavers with no prior university degree required.");
+      } else {
+        whyYouMatch.push(`Undergraduate transfer credentials from ${profile.university.trim()} evaluated for credit mobility.`);
+      }
     }
   } else {
-    // 6+ backlogs
-    failedSubjectsStatus = 'cleared_required';
-    whatCouldDisqualify.push(`Having ${failedCount} failed subjects indicates substantial academic setbacks. Many selective universities will require a strong statement of explanation or mitigating circumstances.`);
-    confidenceScore -= 28;
+    // 2. STANDARD UNIVERSITY CGPA SENSITIVITY
+    const cgpaDiff = normStudentCGPA - minCGPA;
+    if (cgpaDiff >= 0.3) {
+      cgpaStatus = 'exceeds';
+      whyYouMatch.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) substantially exceeds the minimum cutoff (${minCGPA.toFixed(2)}/4.0), making your application highly competitive.`);
+      confidenceScore += 25;
+    } else if (cgpaDiff >= 0) {
+      cgpaStatus = 'meets';
+      whyYouMatch.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) meets the stated academic threshold of ${minCGPA.toFixed(2)}/4.0.`);
+      confidenceScore += 15;
+    } else if (cgpaDiff >= -0.15) {
+      cgpaStatus = 'borderline';
+      whatToConfirm.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) is marginally below the preferred benchmark of ${minCGPA.toFixed(2)}/4.0; strong GRE scores, publications, or motivated essays can compensate.`);
+      confidenceScore += 2;
+    } else {
+      cgpaStatus = 'below';
+      whatCouldDisqualify.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) does not meet the minimum required academic cutoff (${minCGPA.toFixed(2)}/4.0).`);
+      confidenceScore -= 35;
+    }
+
+    // 3. UNIVERSITY-LEVEL FAILED SUBJECTS INTELLIGENTLY
+    const failedCount = profile.failedSubjects || 0;
+    const policy = scholarship.failedSubjectRule.policy;
+
+    if (failedCount === 0) {
+      failedSubjectsStatus = 'safe';
+      whyYouMatch.push("Pristine transcript with zero failed courses fulfills strict academic standing requirements.");
+      confidenceScore += 12;
+    } else if (failedCount >= 1 && failedCount <= 2) {
+      switch (policy) {
+        case 'strict_zero_fails':
+          failedSubjectsStatus = 'disqualified';
+          whatCouldDisqualify.push(`This ultra-competitive award favors flawless academic transcripts. Having ${failedCount} failed course(s) places you at a disadvantage against candidates with clean transcripts.`);
+          confidenceScore -= 25;
+          break;
+        case 'no_active_backlogs':
+        case 'must_be_cleared':
+          failedSubjectsStatus = 'cleared_required';
+          whyYouMatch.push(`Earlier failed courses are acceptable once cleared; ensure your ${failedCount} backlog(s) are officially passed before departure.`);
+          whatToConfirm.push(`Verify that all ${failedCount} retaken subjects are marked as passed on your final degree transcript.`);
+          confidenceScore += 5;
+          break;
+        case 'allowed_if_cgpa_met':
+        default:
+          failedSubjectsStatus = 'safe';
+          whyYouMatch.push(`The provider focuses on overall cumulative CGPA rather than isolated course failures. Your ${failedCount} failed subject(s) do not disqualify you.`);
+          confidenceScore += 8;
+          break;
+      }
+    } else if (failedCount >= 3 && failedCount <= 5) {
+      switch (policy) {
+        case 'strict_zero_fails':
+          failedSubjectsStatus = 'disqualified';
+          whatCouldDisqualify.push(`Having ${failedCount} failed subjects will likely disqualify you from this top-tier merit award where unblemished records are expected.`);
+          confidenceScore -= 35;
+          break;
+        case 'no_active_backlogs':
+        case 'must_be_cleared':
+          failedSubjectsStatus = 'cleared_required';
+          whatCouldDisqualify.push(`You have ${failedCount} failed subjects. Official rules require every backlog to be remediated and an unencumbered degree conferred.`);
+          whatToConfirm.push(`Confirm timeline to clear all ${failedCount} backlogs before the scholarship visa issuance window.`);
+          confidenceScore -= 10;
+          break;
+        case 'allowed_if_cgpa_met':
+        default:
+          failedSubjectsStatus = 'cleared_required';
+          whyYouMatch.push(`Cumulative CGPA rule applies: if your overall grade point average is maintained, your ${failedCount} failed courses remain permissible.`);
+          whatToConfirm.push(`Check if host department imposes a cap on the total number of course retakes allowed.`);
+          confidenceScore -= 5;
+          break;
+      }
+    } else {
+      failedSubjectsStatus = 'cleared_required';
+      whatCouldDisqualify.push(`Having ${failedCount} failed subjects indicates substantial academic setbacks. Many selective universities will require a strong statement of explanation or mitigating circumstances.`);
+      confidenceScore -= 28;
+    }
+
+    // 4. UNIVERSITY CONTEXT
+    if (profile.university && profile.university.trim().length > 0) {
+      whyYouMatch.push(`Credentials from ${profile.university.trim()} are recognized for international degree equivalence.`);
+    }
   }
 
-  // 4. UNIVERSITY CONTEXT
-  if (profile.university && profile.university.trim().length > 0) {
-    whyYouMatch.push(`Undergraduate credentials from ${profile.university.trim()} are recognized for international degree equivalence.`);
-  }
-
-  // 5. STUDY LEVEL SENSITIVITY (MANDATORY SELECTION UNDER UNIVERSITY NAME)
+  // 5. STUDY LEVEL SENSITIVITY
   if (profile.studyLevel) {
     if (matchesStudyLevels(scholarship, [profile.studyLevel])) {
       whyYouMatch.push(`Provides verified funding for your target ${profile.studyLevel} program.`);
       confidenceScore += 10;
     } else {
       whatCouldDisqualify.push(`This scholarship targets academic levels differing from your selected target (${profile.studyLevel}).`);
-      confidenceScore -= 20;
+      confidenceScore -= 25;
+    }
+  }
+
+  // 5B. TARGET DESTINATION SENSITIVITY
+  if (profile.targetDestination && profile.targetDestination !== 'Worldwide') {
+    if (scholarship.destinationCountry.toLowerCase().includes(profile.targetDestination.toLowerCase())) {
+      whyYouMatch.push(`Matches your target study destination (${scholarship.destinationCountry}).`);
+      confidenceScore += 12;
     }
   } else if (profile.degreeLevel && profile.degreeLevel !== 'any') {
     if (scholarship.degreeLevels.includes(profile.degreeLevel as any)) {

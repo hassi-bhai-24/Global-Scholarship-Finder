@@ -9,6 +9,8 @@ import { ScholarshipDetailModal } from './components/ScholarshipDetailModal';
 import { ApplicationTrackerView } from './components/ApplicationTrackerView';
 import { GlobalDirectoryView } from './components/GlobalDirectoryView';
 import { AdminConsoleView } from './components/AdminConsoleView';
+import { MemorialModal } from './components/MemorialModal';
+import { ScamSafetyModal } from './components/ScamSafetyModal';
 
 import { MatchCategory, MatchResult, Scholarship, StudentProfile, ApplicationStatus, ApplicationTrackerItem } from './types/scholarship';
 import { VERIFIED_SCHOLARSHIPS } from './data/scholarships';
@@ -40,7 +42,7 @@ import {
 import { ACADEMIC_SUBJECTS } from './data/subjects';
 import { StudyLevelFilterModal } from './components/StudyLevelFilterModal';
 import { StudyLevelOnboardingModal } from './components/StudyLevelOnboardingModal';
-import { getShortLevelLabel } from './data/studyLevels';
+import { getShortLevelLabel, normalizeLevelToCanonical } from './data/studyLevels';
 
 const STUDY_LEVELS_STORAGE_KEY = 'user_selected_study_levels';
 const ONBOARDING_DISMISSED_KEY = 'study_level_onboarding_dismissed';
@@ -161,6 +163,9 @@ export default function App() {
   const [deepScanMessage, setDeepScanMessage] = useState<string | null>(null);
   const [lastRefreshedTime, setLastRefreshedTime] = useState<string | null>(null);
   const [recentWebQueries, setRecentWebQueries] = useState<string[]>([]);
+  const [isMemorialOpen, setIsMemorialOpen] = useState(false);
+  const [isScamSafetyOpen, setIsScamSafetyOpen] = useState(false);
+  const [scamSafetyTab, setScamSafetyTab] = useState<'guide' | 'report'>('guide');
 
   // Saved / Tracker storage
   const [savedItems, setSavedItems] = useState<ApplicationTrackerItem[]>([]);
@@ -179,8 +184,9 @@ export default function App() {
       setSelectedSubjectFilter(userProfile.field);
     }
     if (userProfile.studyLevel) {
-      setSelectedStudyLevels([userProfile.studyLevel]);
-      storeStudyLevels([userProfile.studyLevel]);
+      const canonical = normalizeLevelToCanonical(userProfile.studyLevel) || userProfile.studyLevel;
+      setSelectedStudyLevels([canonical]);
+      storeStudyLevels([canonical]);
     }
     setHasSearched(true);
     setCurrentTab('matcher');
@@ -191,8 +197,16 @@ export default function App() {
 
     // 1. PHASE 1: Purge previous query residue & baseline evaluate against user's exact country
     const eligibleCatalog = VERIFIED_SCHOLARSHIPS.filter(s => isEligibleNationality(s, userProfile.country));
-    const instantMatches = eligibleCatalog.map(s => evaluateEligibility(s, userProfile));
+    const rawInstantMatches = eligibleCatalog.map(s => evaluateEligibility(s, userProfile));
     
+    // Deduplicate by scholarship id
+    const seenInstantIds = new Set<string>();
+    const instantMatches = rawInstantMatches.filter(m => {
+      if (!m.scholarship.id || seenInstantIds.has(m.scholarship.id)) return false;
+      seenInstantIds.add(m.scholarship.id);
+      return true;
+    });
+
     setAllMatches(instantMatches);
     setSummaryStats({
       totalDiscovered: instantMatches.length,
@@ -241,7 +255,15 @@ export default function App() {
             );
 
             // Re-evaluate eligibility for complete fidelity with userProfile
-            const reEvaluated = countryEligible.map((m: MatchResult) => evaluateEligibility(m.scholarship, userProfile));
+            const rawReEvaluated = countryEligible.map((m: MatchResult) => evaluateEligibility(m.scholarship, userProfile));
+
+            // Deduplicate by scholarship id
+            const seenReIds = new Set<string>();
+            const reEvaluated = rawReEvaluated.filter((m: MatchResult) => {
+              if (!m.scholarship.id || seenReIds.has(m.scholarship.id)) return false;
+              seenReIds.add(m.scholarship.id);
+              return true;
+            });
 
             const strongCount = reEvaluated.filter((m: MatchResult) => m.category === 'STRONG_MATCH').length;
             const likelyCount = reEvaluated.filter((m: MatchResult) => m.category === 'LIKELY_MATCH').length;
@@ -407,6 +429,11 @@ export default function App() {
         onSelectTab={(tab) => setCurrentTab(tab)}
         savedCount={savedItems.length}
         onNewSearch={() => setHasSearched(false)}
+        onOpenMemorial={() => setIsMemorialOpen(true)}
+        onOpenScamSafety={(tab = 'guide') => {
+          setScamSafetyTab(tab);
+          setIsScamSafetyOpen(true);
+        }}
       />
 
       {/* Main Tab Content */}
@@ -468,120 +495,78 @@ export default function App() {
                 ) : (
                   <div>
                     {/* Command Center Summary Bar */}
-                    <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-left">
+                    <div className="mb-6 p-5 sm:p-6 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-left">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                            Academic Match Assessment
-                          </span>
-                          <span className="text-slate-600">·</span>
                           <button
                             onClick={() => setHasSearched(false)}
-                            className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                            className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer"
                           >
-                            New Search
+                            ← New Search
                           </button>
                         </div>
 
-                        {summaryStats.strongMatches + summaryStats.likelyMatches + summaryStats.possibleMatches > 0 ? (
-                          <div>
-                            <h2 className="font-display font-black text-2xl sm:text-3xl text-white">
-                              We found {summaryStats.strongMatches + summaryStats.likelyMatches + summaryStats.possibleMatches} matching scholarships for {profile?.country}
-                            </h2>
-                            <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                              {summaryStats.strongMatches} strong · {summaryStats.likelyMatches} likely · {summaryStats.possibleMatches} possible matches based on {profile?.cgpa} CGPA &amp; {profile?.failedSubjects} backlogs ({summaryStats.lowMatches} programs reviewed below cutoff)
-                            </p>
-                          </div>
-                        ) : (
-                          <div>
-                            <h2 className="font-display font-black text-2xl sm:text-3xl text-white">
-                              0 direct merit matches found for {profile?.cgpa} CGPA
-                            </h2>
-                            <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                              Evaluated {summaryStats.totalDiscovered} official scholarships open to {profile?.country}. Most high-merit awards require a 3.0+ CGPA; see below for program criteria or consider flexible options.
-                            </p>
-                          </div>
-                        )}
+                        <h2 className="font-display font-black text-2xl sm:text-3xl text-white">
+                          Matching Scholarships
+                        </h2>
                       </div>
 
                       {/* Summary Metrics & Actions */}
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <div className="px-3 py-2 rounded-xl bg-slate-950 border border-emerald-900/60 text-center">
-                          <div className="font-display font-black text-lg text-emerald-400 font-mono-data">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-950 border border-emerald-900/60 text-center">
+                          <div className="font-display font-black text-base text-emerald-400 font-mono-data">
                             {summaryStats.strongMatches}
                           </div>
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wider">Strong Matches</div>
+                          <div className="text-[10px] text-slate-400 uppercase">Strong</div>
                         </div>
 
-                        <div className="px-3 py-2 rounded-xl bg-slate-950 border border-teal-900/60 text-center">
-                          <div className="font-display font-black text-lg text-teal-400 font-mono-data">
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-950 border border-teal-900/60 text-center">
+                          <div className="font-display font-black text-base text-teal-400 font-mono-data">
                             {summaryStats.likelyMatches}
                           </div>
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wider">Likely Matches</div>
+                          <div className="text-[10px] text-slate-400 uppercase">Likely</div>
                         </div>
 
-                        <div className="px-3 py-2 rounded-xl bg-slate-950 border border-amber-900/60 text-center">
-                          <div className="font-display font-black text-lg text-amber-400 font-mono-data">
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-950 border border-amber-900/60 text-center">
+                          <div className="font-display font-black text-base text-amber-400 font-mono-data">
                             {summaryStats.possibleMatches}
                           </div>
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wider">Possible Matches</div>
+                          <div className="text-[10px] text-slate-400 uppercase">Possible</div>
                         </div>
 
-                        <div className="px-3 py-2 rounded-xl bg-slate-950 border border-rose-950 text-center">
-                          <div className="font-display font-black text-lg text-rose-400 font-mono-data">
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-950 border border-rose-950 text-center">
+                          <div className="font-display font-black text-base text-rose-400 font-mono-data">
                             {summaryStats.lowMatches}
                           </div>
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wider">Below Cutoff</div>
+                          <div className="text-[10px] text-slate-400 uppercase">Below Cutoff</div>
                         </div>
 
-                        {/* Dedicated Default Refresh & Re-Scan Web Action */}
+                        {/* Dedicated Default Refresh Action */}
                         <button
                           onClick={() => profile && executeSearch(profile, true)}
                           disabled={isLiveFetching || isSearching}
-                          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                          title="Purge cache and re-scan the web from scratch for your latest profile conditions"
+                          className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                          title="Refresh feeds"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 text-slate-950 ${isLiveFetching || isSearching ? 'animate-spin' : ''}`} />
-                          <span>{isLiveFetching || isSearching ? 'Refreshing Feeds...' : 'Refresh & Re-Scan Web'}</span>
+                          <span>{isLiveFetching || isSearching ? 'Refreshing...' : 'Refresh Feeds'}</span>
                         </button>
 
                         {/* On-Demand Global Deep Scan Button */}
                         <button
                           onClick={handleTriggerDeepScan}
                           disabled={isDeepScanning}
-                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                          title="Trigger a cross-embassy registry scan"
+                          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                          title="Deep global scan"
                         >
                           <Globe className={`w-3.5 h-3.5 text-teal-400 ${isDeepScanning ? 'animate-spin' : ''}`} />
-                          <span>{isDeepScanning ? 'Scanning...' : 'Deep Global Scan'}</span>
+                          <span>{isDeepScanning ? 'Scanning...' : 'Deep Scan'}</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Live Refresh & Grounding Telemetry Ribbon */}
-                    {(lastRefreshedTime || recentWebQueries.length > 0) && (
-                      <div className="mb-4 px-4 py-2.5 rounded-xl bg-slate-900/90 border border-emerald-900/50 flex flex-wrap items-center justify-between gap-2 text-xs text-left">
-                        <div className="flex items-center gap-2 text-emerald-400">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <span className="font-semibold">Auto-Refreshed Search Session:</span>
-                          <span className="text-slate-300">
-                            {lastRefreshedTime ? `Refreshed at ${lastRefreshedTime}` : 'All feeds refreshed from scratch'}
-                          </span>
-                        </div>
-                        {recentWebQueries.length > 0 && (
-                          <div className="flex items-center gap-1.5 text-slate-400 text-[11px] overflow-hidden text-ellipsis whitespace-nowrap max-w-full sm:max-w-md">
-                            <span className="text-slate-500">Live Search Grounding:</span>
-                            <span className="text-slate-300 font-mono-data truncate">
-                              "{recentWebQueries[0]}"
-                              {recentWebQueries.length > 1 && ` +${recentWebQueries.length - 1} more`}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
                     {deepScanMessage && (
-                      <div className="mb-4 p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300 flex items-center gap-2.5 animate-fade-in text-left">
+                      <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300 flex items-center gap-2 animate-fade-in text-left">
                         <Globe className="w-4 h-4 text-emerald-400 shrink-0" />
                         <span>{deepScanMessage}</span>
                       </div>
@@ -597,7 +582,7 @@ export default function App() {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search scholarships by keyword, title, or country..."
+                            placeholder="Search scholarships..."
                             className="w-full pl-10 pr-3.5 py-2.5 min-h-[44px] rounded-xl bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500 text-xs sm:text-sm"
                           />
                         </div>
@@ -655,10 +640,10 @@ export default function App() {
                       {/* Category Segment Tabs */}
                       <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800/80">
                         {[
-                          { id: 'all', label: `All for ${profile?.country || 'Profile'} (${allMatches.length})` },
-                          { id: 'strong_match', label: `Strong Matches (${summaryStats.strongMatches})` },
-                          { id: 'likely_match', label: `Likely Matches (${summaryStats.likelyMatches})` },
-                          { id: 'possible_match', label: `Possible Matches (${summaryStats.possibleMatches})` },
+                          { id: 'all', label: `All (${allMatches.length})` },
+                          { id: 'strong_match', label: `Strong (${summaryStats.strongMatches})` },
+                          { id: 'likely_match', label: `Likely (${summaryStats.likelyMatches})` },
+                          { id: 'possible_match', label: `Possible (${summaryStats.possibleMatches})` },
                           { id: 'low_match', label: `Below Cutoff (${summaryStats.lowMatches})` }
                         ].map(tab => (
                           <button
@@ -880,17 +865,33 @@ export default function App() {
         onSkip={handleSkipOnboarding}
       />
 
+      {/* Memorial Modal */}
+      <MemorialModal
+        isOpen={isMemorialOpen}
+        onClose={() => setIsMemorialOpen(false)}
+      />
+
+      {/* Scam Safety Modal */}
+      <ScamSafetyModal
+        isOpen={isScamSafetyOpen}
+        onClose={() => setIsScamSafetyOpen(false)}
+        defaultTab={scamSafetyTab}
+      />
+
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-8 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-400">Global Scholarship Finder</span>
-            <span>·</span>
-            <span>Official Government & University Portals</span>
+      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div>
+            <span>Laiba Global Scholarship Finder · Official sources only</span>
           </div>
 
-          <div className="text-slate-500">
-            Eligibility assessments are educational guidance. Official program guidelines are authoritative.
+          <div>
+            <button
+              onClick={() => setIsMemorialOpen(true)}
+              className="text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
+            >
+              Dedicated to Laiba.
+            </button>
           </div>
         </div>
       </footer>

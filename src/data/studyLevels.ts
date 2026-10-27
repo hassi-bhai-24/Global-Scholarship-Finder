@@ -8,24 +8,105 @@ export const STUDY_LEVEL_OPTIONS = [
   "Diploma / Certificate / Short Course"
 ] as const;
 
+export const ADAPTIVE_STUDY_LEVELS = [
+  "Undergraduate / Bachelor's (after Intermediate / A-Levels / 12th grade)",
+  "Master's / Postgraduate",
+  "PhD / Doctorate",
+  "Postdoctoral / Research",
+  "Diploma / Certificate / Vocational",
+  "Short course / Exchange / Summer program"
+] as const;
+
+export type AdaptiveStudyLevel = typeof ADAPTIVE_STUDY_LEVELS[number];
+
+export interface EducationStatusOption {
+  id: string;
+  label: string;
+  isPreUniversity?: boolean;
+  requiresUniversity?: boolean;
+}
+
+export const EDUCATION_STATUS_BY_LEVEL: Record<string, EducationStatusOption[]> = {
+  undergraduate: [
+    { id: 'intermediate_current', label: 'Currently in Intermediate / FSc / FA / ICS / Pre-Engineering / Pre-Medical', isPreUniversity: true },
+    { id: 'intermediate_completed', label: 'Completed Intermediate / A-Levels / 12th grade', isPreUniversity: true },
+    { id: 'alevels_current', label: 'Currently in A-Levels / IB / AP', isPreUniversity: true },
+    { id: 'alevels_completed', label: 'Completed A-Levels / IB', isPreUniversity: true },
+    { id: 'matric_completed', label: 'Matric / O-Levels completed (planning ahead)', isPreUniversity: true },
+    { id: 'uni_transfer', label: 'Transferring from a university (ask for university)', requiresUniversity: true }
+  ],
+  masters: [
+    { id: 'final_year_bachelors', label: "Final-year Bachelor's student", requiresUniversity: true },
+    { id: 'graduated_bachelors', label: "Bachelor's graduated", requiresUniversity: true },
+    { id: 'working_professional_masters', label: 'Working professional', requiresUniversity: true }
+  ],
+  phd: [
+    { id: 'final_year_masters', label: "Final-year Master's student", requiresUniversity: true },
+    { id: 'graduated_masters', label: "Master's graduated", requiresUniversity: true },
+    { id: 'working_researcher_phd', label: 'Working researcher', requiresUniversity: true }
+  ],
+  postdoc: [
+    { id: 'phd_candidate', label: 'PhD candidate (final year)', requiresUniversity: true },
+    { id: 'phd_graduated', label: 'Recent PhD graduate', requiresUniversity: true },
+    { id: 'working_researcher_postdoc', label: 'Working researcher / Postdoc fellow', requiresUniversity: true }
+  ],
+  diploma_short: [
+    { id: 'student', label: 'Student', isPreUniversity: true },
+    { id: 'graduate', label: 'Graduate' },
+    { id: 'working_professional_short', label: 'Working professional' }
+  ]
+};
+
+export const PAKISTANI_BOARDS = [
+  "BISE Lahore",
+  "Federal Board (FBISE)",
+  "BISE Karachi",
+  "BISE Rawalpindi",
+  "BISE Multan",
+  "BISE Faisalabad",
+  "BISE Gujranwala",
+  "BISE Peshawar",
+  "BISE Quetta",
+  "Other Pakistani Board"
+];
+
+export const BOARD_CURRICULA = [
+  { id: 'pakistani_board', label: 'Pakistani Board (BISE / Federal)' },
+  { id: 'cambridge', label: 'Cambridge (A-Levels / O-Levels)' },
+  { id: 'ib', label: 'International Baccalaureate (IB)' },
+  { id: 'american_hs', label: 'American High School (GPA)' },
+  { id: 'other_intl', label: 'Other International Board' }
+];
+
+export const TARGET_DESTINATIONS = [
+  "Worldwide",
+  "United States",
+  "United Kingdom",
+  "Germany",
+  "Canada",
+  "Australia",
+  "Europe",
+  "Asia"
+];
+
 export type StudyLevelOption = typeof STUDY_LEVEL_OPTIONS[number];
 
 // Short display label helper for compact badges on cards and chips
 export function getShortLevelLabel(level: string): string {
-  if (level.includes("Intermediate") || level.includes("Pre-University")) return "Pre-Univ / High School";
-  if (level.includes("Undergraduate")) return "Bachelor's";
+  if (level.includes("Intermediate") || level.includes("Pre-University") || level.includes("12th grade")) return "Undergraduate";
+  if (level.includes("Undergraduate") || level.includes("Bachelor")) return "Bachelor's";
   if (level.includes("Postgraduate")) return "Postgraduate";
   if (level.includes("Master's") || level.toLowerCase() === "masters") return "Master's";
   if (level.includes("PhD")) return "PhD / Doctorate";
   if (level.includes("Postdoctoral")) return "Postdoc / Fellowship";
-  if (level.includes("Diploma") || level.includes("Short Course")) return "Diploma / Certificate";
+  if (level.includes("Diploma") || level.includes("Short Course") || level.includes("Vocational")) return "Diploma / Certificate";
   return level;
 }
 
 export function normalizeLevelToCanonical(level: string): string | null {
   const l = level.toLowerCase().trim();
-  if (l.includes("intermediate") || l.includes("pre-university") || l.includes("fsc") || l.includes("a-level") || l.includes("high school")) {
-    return "Intermediate / Pre-University (FSc, A-Levels, High School)";
+  if (l.includes("intermediate") || l.includes("pre-university") || l.includes("fsc") || l.includes("a-level") || l.includes("high school") || l.includes("12th grade")) {
+    return "Undergraduate (Bachelor's)";
   }
   if (l === "bachelors" || l === "bachelor" || l.includes("undergraduate") || l.includes("bachelor's")) {
     return "Undergraduate (Bachelor's)";
@@ -39,10 +120,10 @@ export function normalizeLevelToCanonical(level: string): string | null {
   if (l === "phd" || l === "doctorate" || l.includes("doctor")) {
     return "PhD / Doctorate";
   }
-  if (l === "postdoc" || l.includes("postdoctoral") || l.includes("fellowship")) {
+  if (l === "postdoc" || l.includes("postdoctoral") || l.includes("fellowship") || l.includes("research")) {
     return "Postdoctoral / Research Fellowship";
   }
-  if (l === "diploma" || l === "certificate" || l === "exchange" || l.includes("short course")) {
+  if (l === "diploma" || l === "certificate" || l === "exchange" || l.includes("short course") || l.includes("vocational") || l.includes("summer")) {
     return "Diploma / Certificate / Short Course";
   }
   return null;
@@ -96,5 +177,9 @@ export function matchesStudyLevels(
     return true;
   }
   const schLevels = getScholarshipStudyLevels(scholarship);
-  return selectedLevels.some(selected => schLevels.includes(selected));
+  return selectedLevels.some(selected => {
+    if (schLevels.includes(selected)) return true;
+    const canonical = normalizeLevelToCanonical(selected);
+    return canonical ? schLevels.includes(canonical) : false;
+  });
 }

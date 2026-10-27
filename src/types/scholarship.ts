@@ -1,15 +1,43 @@
 export type CGPAScale = '4.0' | '5.0' | '10.0' | '100%';
 
+export interface PreUniResult {
+  boardCurriculum?: string;
+  specificBoard?: string;
+  resultMode?: 'percentage' | 'marks' | 'grades' | 'ib_points' | 'gpa';
+  percentage?: number;
+  obtainedMarks?: number;
+  totalMarks?: number;
+  grades?: string;
+  ibPoints?: number;
+  highSchoolGpa?: number;
+  matricScore?: string;
+  entranceTest?: string;
+  hasFailedPapers?: boolean;
+}
+
 export interface StudentProfile {
   country: string;
   university: string;
   studyLevel?: string;
+  educationStatus?: string;
+  field?: string;
+  targetDestination?: string;
   cgpa: number;
   cgpaScale: CGPAScale;
   failedSubjects: number;
+
+  // Pre-university adaptation
+  isPreUniversity?: boolean;
+  preUniResult?: PreUniResult;
+
+  // Language, finance & more filters
+  englishTestFilter?: 'all' | 'ielts' | 'toefl' | 'duolingo' | 'none_yet' | 'not_required';
+  fundingTypeFilter?: 'all' | 'full' | 'partial' | 'tuition' | 'stipend';
+  genderOrMinorityFilter?: string;
+  financialNeedStatus?: 'all' | 'yes' | 'no' | 'prefer_not_say';
+
   // Optional enrichment attributes
   degreeLevel?: 'bachelors' | 'masters' | 'phd' | 'exchange' | 'postdoc' | 'any';
-  field?: string;
   targetCountries?: string[];
   englishTest?: 'None / In Progress' | 'IELTS' | 'TOEFL iBT' | 'PTE' | 'Duolingo';
   englishScore?: string;

@@ -1,11 +1,12 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { VERIFIED_SCHOLARSHIPS, OFFICIAL_SOURCES } from './src/data/scholarships';
-import { evaluateEligibility, normalizeCGPATo4, isEligibleNationality } from './src/services/matchingEngine';
-import { Scholarship, StudentProfile } from './src/types/scholarship';
+import { VERIFIED_SCHOLARSHIPS, OFFICIAL_SOURCES } from './src/data/scholarships.ts';
+import { evaluateEligibility, normalizeCGPATo4, isEligibleNationality } from './src/services/matchingEngine.ts';
+import type { Scholarship, StudentProfile } from './src/types/scholarship.ts';
 
 dotenv.config();
 
@@ -129,8 +130,32 @@ app.post('/api/scholarships/search', async (req, res) => {
     const profile: StudentProfile = req.body;
     const enableLiveSearch = req.body.liveSearch !== false;
 
-    if (!profile.country || !profile.university || profile.cgpa === undefined) {
-      return res.status(400).json({ error: 'Country, university, and CGPA are mandatory initial fields.' });
+    const isPreUni = !!(
+      profile.isPreUniversity ||
+      (profile.studyLevel && (
+        profile.studyLevel.toLowerCase().includes('undergraduate') ||
+        profile.studyLevel.toLowerCase().includes('intermediate') ||
+        profile.studyLevel.toLowerCase().includes('12th') ||
+        profile.studyLevel.toLowerCase().includes('bachelor')
+      ) && (profile.university === 'No university experience' || !profile.university || profile.preUniResult !== undefined))
+    );
+
+    if (!profile.country || !profile.country.trim()) {
+      return res.status(400).json({ error: 'Country / Nationality is required.' });
+    }
+
+    if (!isPreUni && (!profile.university || !profile.university.trim())) {
+      return res.status(400).json({ error: 'Current / Graduated University is required.' });
+    }
+
+    if (profile.cgpa === undefined || isNaN(profile.cgpa)) {
+      if (profile.preUniResult?.percentage) {
+        profile.cgpa = Math.min(4.0, (profile.preUniResult.percentage / 100) * 4.0);
+        profile.cgpaScale = '4.0';
+      } else {
+        profile.cgpa = 3.6;
+        profile.cgpaScale = '4.0';
+      }
     }
 
     // Filter verified catalog to only those open to the student's nationality
@@ -146,16 +171,26 @@ app.post('/api/scholarships/search', async (req, res) => {
       try {
         const majorInfo = profile.field ? `in ${profile.field}` : 'across relevant academic disciplines';
         const levelInfo = profile.studyLevel ? `at the ${profile.studyLevel} level` : (profile.degreeLevel ? `at the ${profile.degreeLevel} level` : 'for higher education');
+        const educationInfo = isPreUni
+          ? `- Pre-University Status: ${profile.educationStatus || 'Intermediate / A-Levels / High School'} (No university degree required)`
+          : `- Current / Graduated University: ${profile.university}`;
+        const scoreInfo = isPreUni && profile.preUniResult
+          ? `- Academic Result: ${profile.preUniResult.percentage ? profile.preUniResult.percentage + '% board score' : profile.preUniResult.grades || 'Passed'}`
+          : `- Cumulative CGPA: ${profile.cgpa} out of ${profile.cgpaScale} scale`;
+        const destInfo = profile.targetDestination && profile.targetDestination !== 'Worldwide'
+          ? `- Preferred Destination: ${profile.targetDestination}`
+          : `- Target Destination: Worldwide`;
         
         const prompt = `You are a real-time global scholarship crawler with Google Search. Browse the open internet across verified government, ministerial, university, and multilateral funding databases.
 
 Search for real, currently active, or upcoming 2026/2027 international scholarships matching these EXACT student conditions:
 - Target Study Level: ${profile.studyLevel || 'All Levels'}
 - Nationality / Citizenship: ${profile.country}
-- Current / Graduated University: ${profile.university}
+${educationInfo}
 - Field / Academic Discipline: ${profile.field || 'All disciplines'}
-- Cumulative CGPA: ${profile.cgpa} out of ${profile.cgpaScale} scale
-- Failed Course Backlogs: ${profile.failedSubjects || 0} failed subjects (allowed if cumulative CGPA or degree award is met)
+${scoreInfo}
+- Failed Course Backlogs / Compartments: ${profile.failedSubjects || 0}
+${destInfo}
 
 Search across top international destinations:
 1. United Kingdom & Commonwealth (Chevening, Commonwealth, GREAT, Gates Cambridge, Clarendon, university merit awards)
@@ -287,8 +322,16 @@ Output ONLY raw valid JSON array. No conversational text. No markdown blocks out
       }
     }
 
+    // Deduplicate scholarships by id defensively
+    const seenScholarshipIds = new Set<string>();
+    const deduplicatedScholarships = allScholarships.filter(s => {
+      if (!s.id || seenScholarshipIds.has(s.id)) return false;
+      seenScholarshipIds.add(s.id);
+      return true;
+    });
+
     // Evaluate eligibility for each scholarship
-    const matchResults = allScholarships.map(scholarship => evaluateEligibility(scholarship, profile));
+    const matchResults = deduplicatedScholarships.map(scholarship => evaluateEligibility(scholarship, profile));
 
     // Summary stats
     const strongMatches = matchResults.filter(m => m.category === 'STRONG_MATCH').length;
@@ -490,7 +533,10 @@ app.post('/api/scholarships/verify-single', async (req, res) => {
 
 // Setup Vite middlewares in development or static serving in production
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  const distPath = path.resolve(__dirname, 'dist');
+  const isProduction = process.env.NODE_ENV === 'production' || fs.existsSync(path.resolve(distPath, 'index.html'));
+
+  if (!isProduction) {
     const { createServer } = await import('vite');
     const vite = await createServer({
       server: { middlewareMode: true },
@@ -498,7 +544,6 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));

@@ -73,18 +73,28 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
               <span className="font-semibold">{profile.country}</span>
             </div>
 
-            {/* University Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 max-w-[280px] truncate" title={profile.university}>
-              <span className="text-slate-400 text-xs">Uni:</span>
-              <span className="font-semibold truncate">{profile.university}</span>
-            </div>
+            {/* University Badge (Only if provided / not pre-uni without uni) */}
+            {profile.university && profile.university !== 'No university experience' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 max-w-[280px] truncate" title={profile.university}>
+                <span className="text-slate-400 text-xs">Uni:</span>
+                <span className="font-semibold truncate">{profile.university}</span>
+              </div>
+            )}
 
-            {/* Study Level Badge Under / Next to Uni */}
+            {/* Study Level Badge */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-emerald-850 text-emerald-300">
               <GraduationCap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="text-slate-400 text-xs">Level:</span>
-              <span className="font-semibold text-white">{profile.studyLevel || "Master's"}</span>
+              <span className="font-semibold text-white">{profile.studyLevel || "Undergraduate"}</span>
             </div>
+
+            {/* Education Status Badge (if available) */}
+            {profile.educationStatus && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 max-w-[260px] truncate" title={profile.educationStatus}>
+                <span className="text-slate-400 text-xs">Status:</span>
+                <span className="font-medium truncate">{profile.educationStatus}</span>
+              </div>
+            )}
 
             {/* Major / Field of Study Badge */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-emerald-900/50 text-slate-200">
@@ -95,43 +105,67 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
               </span>
             </div>
 
-            {/* CGPA Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200">
-              <span className="text-slate-400 text-xs">CGPA:</span>
-              <span className="font-semibold font-mono-data text-emerald-400">
-                {profile.cgpa} ({profile.cgpaScale})
-              </span>
-            </div>
+            {/* Academic Result Badge: Board Score or CGPA */}
+            {profile.isPreUniversity && profile.preUniResult ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200">
+                <span className="text-slate-400 text-xs">Board:</span>
+                <span className="font-semibold font-mono-data text-emerald-400">
+                  {profile.preUniResult.percentage 
+                    ? `${profile.preUniResult.percentage}%` 
+                    : profile.preUniResult.grades 
+                    ? profile.preUniResult.grades 
+                    : profile.preUniResult.ibPoints 
+                    ? `${profile.preUniResult.ibPoints}/45` 
+                    : `${profile.cgpa} (GPA)`}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200">
+                <span className="text-slate-400 text-xs">CGPA:</span>
+                <span className="font-semibold font-mono-data text-emerald-400">
+                  {profile.cgpa} ({profile.cgpaScale})
+                </span>
+              </div>
+            )}
 
-            {/* Failed Subjects Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200">
-              <span className="text-slate-400 text-xs">Backlogs:</span>
-              <span className={`font-semibold font-mono-data ${profile.failedSubjects > 0 ? 'text-amber-400' : 'text-slate-300'}`}>
-                {profile.failedSubjects} failed
-              </span>
-            </div>
+            {/* Failed Subjects / Compartment Badge */}
+            {profile.isPreUniversity ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200">
+                <span className="text-slate-400 text-xs">Record:</span>
+                <span className={`font-semibold ${profile.preUniResult?.hasFailedPapers ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {profile.preUniResult?.hasFailedPapers ? '1 compartment' : 'Clean record'}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200">
+                <span className="text-slate-400 text-xs">Backlogs:</span>
+                <span className={`font-semibold font-mono-data ${profile.failedSubjects > 0 ? 'text-amber-400' : 'text-slate-300'}`}>
+                  {profile.failedSubjects} failed
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
           <div className="flex items-center gap-2.5 w-full lg:w-auto justify-end">
             <button
               onClick={() => setIsEditingInline(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
             >
               <Edit2 className="w-3.5 h-3.5" />
-              <span>Modify Student Details</span>
+              <span>Edit Profile</span>
             </button>
 
             <button
               onClick={onOpenEnrichment}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 isEnriched
                   ? 'bg-emerald-950/80 border border-emerald-700 text-emerald-300'
                   : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20'
               }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>{isEnriched ? 'Profile Enriched ✓' : 'Add Optional Details (+)'}</span>
+              <span>{isEnriched ? 'Enriched' : 'Add Factors'}</span>
             </button>
           </div>
         </div>
