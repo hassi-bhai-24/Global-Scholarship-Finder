@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Search, Bookmark, BookmarkCheck, Clock, ChevronRight } from 'lucide-react';
 import { Scholarship } from '../types/scholarship';
 import { VERIFIED_SCHOLARSHIPS } from '../data/scholarships';
-import { evaluateSubjectMatch } from '../services/matchingEngine';
+import { evaluateSubjectMatch, withRuntimeDeadline } from '../services/matchingEngine';
+import { ACADEMIC_SUBJECTS } from '../data/subjects';
 
 interface GlobalDirectoryViewProps {
   onOpenDetails: (scholarship: Scholarship) => void;
@@ -49,11 +50,13 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
 
   // Ensure unique IDs to prevent duplicate React keys
   const seenIds = new Set<string>();
-  const uniqueScholarships = filteredScholarships.filter(s => {
-    if (!s.id || seenIds.has(s.id)) return false;
-    seenIds.add(s.id);
-    return true;
-  });
+  const uniqueScholarships = filteredScholarships
+    .map((s) => withRuntimeDeadline(s))
+    .filter(s => {
+      if (!s.id || seenIds.has(s.id)) return false;
+      seenIds.add(s.id);
+      return true;
+    });
 
   const formatFundingType = (t: string) => {
     switch (t) {
@@ -92,7 +95,21 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div>
+            <label className="block text-slate-400 mb-1 font-medium">Subject</label>
+            <select
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Subjects</option>
+              {ACADEMIC_SUBJECTS.map((subject) => (
+                <option key={subject.id} value={subject.name}>{subject.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-slate-400 mb-1 font-medium">Study Level</label>
             <select
@@ -128,7 +145,18 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
         <span className="text-white font-bold font-mono-data">{uniqueScholarships.length}</span> scholarships found
       </div>
 
-      {/* Scholarships Grid: title, source badge, deadline, funding and one action button */}
+      {uniqueScholarships.length === 0 ? (
+        <div className="p-10 text-center bg-slate-900/60 border border-slate-800 rounded-2xl">
+          <h3 className="font-display font-bold text-lg text-white mb-2">No scholarships match these filters</h3>
+          <p className="text-xs text-slate-400 mb-5">Try a different search term or clear the filters below.</p>
+          <button
+            onClick={() => { setSearchQuery(''); setSubjectFilter('all'); setDegreeFilter('all'); setFundingFilter('all'); }}
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-colors cursor-pointer"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {uniqueScholarships.map(s => {
           const saved = isSaved(s.id);
@@ -173,7 +201,7 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
               <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5 text-slate-400">
                   <Clock className="w-3.5 h-3.5 text-slate-500" />
-                  <span>{s.deadline}</span>
+                  <span>{s.deadlineStatus === 'closed' ? 'Closed' : s.deadlineStatus === 'closing_soon' && s.daysRemaining !== undefined ? `${s.daysRemaining} days left (deadline ${s.deadline})` : s.deadline}</span>
                 </div>
 
                 <button
@@ -188,6 +216,7 @@ export const GlobalDirectoryView: React.FC<GlobalDirectoryViewProps> = ({
           );
         })}
       </div>
+      )}
     </div>
   );
 };

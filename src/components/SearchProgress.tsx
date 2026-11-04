@@ -16,11 +16,11 @@ interface SearchProgressProps {
 }
 
 const STAGES = [
-  "Refreshing Global Feed",
-  "Searching Official Portals",
-  "Checking Study Levels",
-  "Evaluating Academic Criteria",
-  "Ranking Verified Matches"
+  "Searching the local catalog",
+  "Checking study levels",
+  "Evaluating academic criteria",
+  "Ranking matches",
+  "Finishing up"
 ];
 
 export const SearchProgress: React.FC<SearchProgressProps> = ({

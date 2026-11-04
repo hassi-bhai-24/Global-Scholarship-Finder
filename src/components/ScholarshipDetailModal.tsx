@@ -224,8 +224,9 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
               {/* Funding Breakdown Grid */}
               <div>
                 <h4 className="font-semibold text-slate-300 uppercase tracking-wider text-xs mb-3">
-                  Comprehensive Funding Coverage
+                  Funding Coverage — as listed in the catalog
                 </h4>
+                <p className="text-[11px] text-slate-500 mb-3">Benefit amounts below are as listed in the catalog and were not re-confirmed against the official page. Confirm them on the official page before applying.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {/* Tuition */}
                   <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
@@ -245,7 +246,7 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                       <span>Monthly Living Stipend</span>
                     </div>
                     <p className="text-slate-300 text-xs leading-relaxed">
-                      {scholarship.benefits.stipendMonthly || "Covered in full living grant package"}
+                      {scholarship.benefits.stipendMonthly || "Not stated on the official page — check the source."}
                     </p>
                   </div>
 
@@ -256,7 +257,7 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                       <span>Airfare & Travel</span>
                     </div>
                     <p className="text-slate-300 text-xs leading-relaxed">
-                      {scholarship.benefits.travelAllowance || "Standard departure allowance"}
+                      {scholarship.benefits.travelAllowance || "Not stated on the official page — check the source."}
                     </p>
                   </div>
 
@@ -267,7 +268,7 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                       <span>Housing / Residence</span>
                     </div>
                     <p className="text-slate-300 text-xs leading-relaxed">
-                      {scholarship.benefits.accommodation || "Assisted housing placement & subsidy"}
+                      {scholarship.benefits.accommodation || "Not stated on the official page — check the source."}
                     </p>
                   </div>
 
@@ -278,7 +279,7 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                       <span>Health & Accident Insurance</span>
                     </div>
                     <p className="text-slate-300 text-xs leading-relaxed">
-                      {scholarship.benefits.insurance || "Comprehensive student insurance plan"}
+                      {scholarship.benefits.insurance || "Not stated on the official page — check the source."}
                     </p>
                   </div>
 
@@ -297,7 +298,13 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Source Verification Badge & Timestamp */}
+              {/* Source Verification Badge & Timestamp — link check only, not a
+                  confirmation of deadline, CGPA or benefits. */}
+              {scholarship.programmeNote && (
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+                  {scholarship.programmeNote}
+                </div>
+              )}
               <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -305,8 +312,10 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                     <div className="font-semibold text-slate-200 truncate">
                       Primary Verification Authority: {scholarship.provider}
                     </div>
-                    <div className="text-slate-400 text-[11px] truncate">
-                      Checked: {scholarship.lastVerified} · Type: {scholarship.sourceType.replace(/_/g, ' ')}
+                    <div className="text-slate-400 text-[11px]">
+                      {scholarship.linkCheck
+                        ? `Links checked ${scholarship.linkCheck.checkedOn}: official link HTTP ${scholarship.linkCheck.officialHttpStatus ?? 'no response'} · application link HTTP ${scholarship.linkCheck.applicationHttpStatus ?? 'no response'}. Deadline shown is as listed — not confirmed on the official page in this check.`
+                        : `Listed as checked: ${scholarship.lastVerified} · Type: ${scholarship.sourceType.replace(/_/g, ' ')}`}
                     </div>
                   </div>
                 </div>
@@ -377,7 +386,7 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
               {/* FAILED SUBJECT POLICY DEEP-DIVE */}
               <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                 <h4 className="font-semibold text-slate-200 text-xs uppercase tracking-wider">
-                  Official Failed-Subject & Backlogs Policy
+                  Failed-Subject &amp; Backlogs Policy — Our Summary
                 </h4>
                 <div className="text-xs text-slate-300 leading-relaxed">
                   <p className="mb-2">
@@ -385,9 +394,10 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                     {scholarship.failedSubjectRule.description}
                   </p>
                   {scholarship.failedSubjectRule.officialQuote && (
-                    <blockquote className="p-2.5 bg-slate-900/80 border-l-2 border-emerald-500 rounded-r-lg text-slate-300 italic text-[11px]">
-                      "{scholarship.failedSubjectRule.officialQuote}"
-                    </blockquote>
+                    <p className="p-2.5 bg-slate-900/80 border border-slate-800 rounded-lg text-slate-300 text-[11px]">
+                      Our summary of the stated policy — confirm it on the official page:{" "}
+                      {scholarship.failedSubjectRule.officialQuote}
+                    </p>
                   )}
                 </div>
               </div>

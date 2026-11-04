@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Check, HelpCircle } from 'lucide-react';
+import { X, Sparkles, Check } from 'lucide-react';
 import { StudentProfile } from '../types/scholarship';
 
 import { ACADEMIC_SUBJECTS } from '../data/subjects';
@@ -21,11 +21,9 @@ export const OptionalEnrichmentModal: React.FC<OptionalEnrichmentModalProps> = (
   const [field, setField] = useState(profile.field || '');
   const [targetCountries, setTargetCountries] = useState<string[]>(profile.targetCountries || []);
   const [englishTest, setEnglishTest] = useState<any>(profile.englishTest || 'None / In Progress');
-  const [englishScore, setEnglishScore] = useState(profile.englishScore || '');
   const [workExperienceYears, setWorkExperienceYears] = useState<string>(
     profile.workExperienceYears !== undefined ? String(profile.workExperienceYears) : '0'
   );
-  const [financialNeed, setFinancialNeed] = useState<any>(profile.financialNeed || 'moderate');
 
   if (!isOpen) return null;
 
@@ -47,9 +45,9 @@ export const OptionalEnrichmentModal: React.FC<OptionalEnrichmentModalProps> = (
       field: field.trim() || undefined,
       targetCountries: targetCountries.length > 0 ? targetCountries : undefined,
       englishTest,
-      englishScore: englishScore.trim() || undefined,
+      englishScore: profile.englishScore,
       workExperienceYears: isNaN(parsedWork) ? 0 : parsedWork,
-      financialNeed
+      financialNeed: profile.financialNeed
     });
     onClose();
   };
@@ -68,7 +66,7 @@ export const OptionalEnrichmentModal: React.FC<OptionalEnrichmentModalProps> = (
                 Optional Profile Enrichment
               </h3>
               <p className="text-xs text-slate-400">
-                Adding these details unlocks higher confidence matches. You can skip any field.
+                Adding these details gives more detailed match reasons. You can skip any field.
               </p>
             </div>
           </div>

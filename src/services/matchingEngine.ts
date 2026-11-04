@@ -2,6 +2,83 @@ import type { CGPAScale, MatchCategory, MatchResult, Scholarship, StudentProfile
 import { findSubjectByName } from '../data/subjects.ts';
 import { matchesStudyLevels } from '../data/studyLevels.ts';
 
+// Deadline status is always computed from the deadline date at runtime.
+// The static deadlineStatus / daysRemaining stored in the catalog are stale
+// snapshots and must never be shown as-is: a listing whose deadline has
+// passed must read Closed, however old its stored status is.
+export function computeDeadlineStatus(
+  deadline: string,
+  now: Date = new Date()
+): { deadlineStatus: 'open' | 'closing_soon' | 'upcoming' | 'closed'; daysRemaining?: number } {
+  const parsed = new Date(deadline);
+  if (isNaN(parsed.getTime())) return { deadlineStatus: 'open', daysRemaining: undefined };
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDeadline = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  const daysRemaining = Math.round((startOfDeadline.getTime() - startOfToday.getTime()) / 86400000);
+  if (daysRemaining < 0) return { deadlineStatus: 'closed', daysRemaining: 0 };
+  if (daysRemaining <= 30) return { deadlineStatus: 'closing_soon', daysRemaining };
+  return { deadlineStatus: 'open', daysRemaining };
+}
+
+export function withRuntimeDeadline<T extends Scholarship>(scholarship: T, now: Date = new Date()): T {
+  const computed = computeDeadlineStatus(scholarship.deadline, now);
+  return { ...scholarship, deadlineStatus: computed.deadlineStatus, daysRemaining: computed.daysRemaining };
+}
+// --- Word-boundary matching (F13) -------------------------------------------
+// Substring matching produced false positives ("Niger" in "Nigeria", "Mali"
+// in "Somalia", "all" in "small", "eu" in any word containing "eu").
+// A phrase only matches when it appears as a whole word/phrase, bounded by
+// non-letters or the ends of the string.
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function containsPhrase(text: string, phrase: string): boolean {
+  const clean = phrase.trim().toLowerCase();
+  if (!clean) return false;
+  const pattern = new RegExp(`(^|[^a-z])${escapeRegExp(clean)}([^a-z]|$)`);
+  return pattern.test(text.toLowerCase());
+}
+
+function phraseEqualsOrContains(a: string, b: string): boolean {
+  const x = a.trim().toLowerCase();
+  const y = b.trim().toLowerCase();
+  if (!x || !y) return false;
+  return x === y || containsPhrase(x, y) || containsPhrase(y, x);
+}
+
+export type NationalityMatchKind = 'excluded' | 'direct' | 'commonwealth' | 'developing' | 'eu' | 'worldwide' | null;
+
+export function nationalityMatchKind(scholarship: Scholarship, userCountry?: string): NationalityMatchKind {
+  if (!userCountry || !userCountry.trim()) return 'worldwide';
+  const user = userCountry.trim().toLowerCase();
+  const entries = scholarship.eligibleNationalities;
+  const nationalityStr = entries.join(' ').toLowerCase();
+
+  const isExplicitlyExcluded = (scholarship.ineligibleNationalities || []).some(
+    (c) => phraseEqualsOrContains(c, userCountry)
+  );
+  if (isExplicitlyExcluded) return 'excluded';
+
+  const isDirectlyListed = entries.some((c) => phraseEqualsOrContains(c, userCountry));
+  if (isDirectlyListed) return 'direct';
+
+  // "All / International / Worldwide" only as whole words: "small island…"
+  // must not count, and "All Non-US" is handled by the exclusion check above.
+  const tokens = nationalityStr.split(/[^a-z]+/).filter(Boolean);
+  const isWorldwide = tokens.includes('all') || tokens.includes('international') || tokens.includes('worldwide');
+  if (isWorldwide) return 'worldwide';
+
+  if (containsPhrase(nationalityStr, 'commonwealth') && COMMONWEALTH_COUNTRIES.includes(user)) return 'commonwealth';
+  if ((containsPhrase(nationalityStr, 'developing') || tokens.includes('dac')) && DEVELOPING_COUNTRIES.includes(user)) return 'developing';
+  // EU membership only: the phrase "european union" or a standalone "eu"
+  // token. "Europe" alone is not EU membership, and a mention of the
+  // Netherlands does not make a grant EU-wide.
+  if ((containsPhrase(nationalityStr, 'european union') || tokens.includes('eu')) && EU_COUNTRIES.includes(user)) return 'eu';
+
+  return null;
+}
+
 // Commonwealth country list
 const COMMONWEALTH_COUNTRIES = [
   "antigua and barbuda", "australia", "bahamas", "bangladesh", "barbados", "belize",
@@ -31,43 +108,12 @@ export const EU_COUNTRIES = [
 ];
 
 export function isEligibleNationality(scholarship: Scholarship, userCountry?: string): boolean {
-  if (!userCountry || !userCountry.trim()) return true;
-  const userCountryLower = userCountry.trim().toLowerCase();
-
-  // Check explicit exclusions first
-  const isExplicitlyExcluded = (scholarship.ineligibleNationalities || []).some(
-    c => userCountryLower === c.toLowerCase() || userCountryLower.includes(c.toLowerCase())
-  );
-  if (isExplicitlyExcluded) return false;
-
-  const nationalityStr = scholarship.eligibleNationalities.join(" ").toLowerCase();
-
-  // Direct country match
-  const isDirectlyListed = scholarship.eligibleNationalities.some(
-    c => c.toLowerCase().includes(userCountryLower) || userCountryLower.includes(c.toLowerCase())
-  );
-  if (isDirectlyListed) return true;
-
-  // Worldwide / international open
-  const isWorldwide = nationalityStr.includes("all") || nationalityStr.includes("international") || nationalityStr.includes("worldwide");
-  if (isWorldwide) return true;
-
-  // Commonwealth
-  if (nationalityStr.includes("commonwealth")) {
-    return COMMONWEALTH_COUNTRIES.includes(userCountryLower);
-  }
-
-  // Developing / DAC list
-  if (nationalityStr.includes("developing") || nationalityStr.includes("dac")) {
-    return DEVELOPING_COUNTRIES.includes(userCountryLower);
-  }
-
-  // European Union
-  if (nationalityStr.includes("european union") || nationalityStr.includes("eu") || nationalityStr.includes("europe")) {
-    return EU_COUNTRIES.includes(userCountryLower);
-  }
-
-  return false;
+  const kind = nationalityMatchKind(scholarship, userCountry);
+  // Eligible when not excluded and some eligibility route applies. A null
+  // kind (restricted to other nationalities) stays ineligible here; the
+  // matcher still evaluates it as LOW_MATCH via evaluateEligibility,
+  // which uses the same helper.
+  return kind !== 'excluded' && kind !== null;
 }
 
 export function normalizeCGPATo4(cgpa: number, scale: CGPAScale): number {
@@ -87,6 +133,8 @@ export function normalizeCGPATo4(cgpa: number, scale: CGPAScale): number {
 }
 
 export function evaluateEligibility(scholarship: Scholarship, profile: StudentProfile): MatchResult {
+  // Runtime deadline status overrides the stale stored snapshot.
+  scholarship = withRuntimeDeadline(scholarship);
   const normStudentCGPA = normalizeCGPATo4(profile.cgpa, profile.cgpaScale);
   const minCGPA = scholarship.minimumCGPA;
   
@@ -95,51 +143,42 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
   const whatToConfirm: string[] = [];
   const nextSteps: string[] = [];
 
-  let confidenceScore = 45; // baseline score
+  let matchScore = 45; // Internal rough match points for ranking/categories only. NOT a probability and never shown as a percentage.
   let cgpaStatus: 'exceeds' | 'meets' | 'borderline' | 'below' | 'not_required' = 'meets';
   let failedSubjectsStatus: 'safe' | 'cleared_required' | 'disqualified' | 'not_restricted' = 'safe';
 
   const userCountryLower = (profile.country || '').trim().toLowerCase();
   const nationalityStr = scholarship.eligibleNationalities.join(" ").toLowerCase();
-  const ineligibleStr = (scholarship.ineligibleNationalities || []).join(" ").toLowerCase();
 
-  // 1. EVALUATE NATIONALITY & BILATERAL ACCORDS
-  const isExplicitlyExcluded = (scholarship.ineligibleNationalities || []).some(
-    c => userCountryLower === c.toLowerCase() || userCountryLower.includes(c.toLowerCase())
-  );
+  // 1. EVALUATE NATIONALITY & BILATERAL ACCORDS (word-boundary matching
+  // via nationalityMatchKind — see the helper above).
+  const natKind = nationalityMatchKind(scholarship, profile.country);
+  const isExplicitlyExcluded = natKind === 'excluded';
 
-  const isCommonwealthEligible = nationalityStr.includes("commonwealth") && COMMONWEALTH_COUNTRIES.includes(userCountryLower);
-  const isDevelopingEligible = (nationalityStr.includes("developing") || nationalityStr.includes("dac")) && DEVELOPING_COUNTRIES.includes(userCountryLower);
-  const isDirectlyListed = scholarship.eligibleNationalities.some(
-    c => c.toLowerCase().includes(userCountryLower) || userCountryLower.includes(c.toLowerCase())
-  );
-  const isEUEligible = (nationalityStr.includes("european union") || nationalityStr.includes("eu") || nationalityStr.includes("netherlands")) && EU_COUNTRIES.includes(userCountryLower);
-  const isWorldwide = nationalityStr.includes("all") || nationalityStr.includes("international") || nationalityStr.includes("worldwide");
-
-  if (isExplicitlyExcluded) {
+  if (natKind === 'excluded') {
     whatCouldDisqualify.push(`Citizens of ${profile.country} are explicitly excluded from this bilateral program.`);
-    confidenceScore -= 45;
-  } else if (isDirectlyListed) {
+    matchScore -= 45;
+  } else if (natKind === 'direct') {
     whyYouMatch.push(`Citizens of ${profile.country} are directly targeted in the official bilateral scholarship agreement.`);
-    confidenceScore += 25;
-  } else if (isCommonwealthEligible) {
+    matchScore += 25;
+  } else if (natKind === 'commonwealth') {
     whyYouMatch.push(`${profile.country} is a recognized Commonwealth member state eligible for CSC UK funding.`);
-    confidenceScore += 22;
-  } else if (isDevelopingEligible) {
+    matchScore += 22;
+  } else if (natKind === 'developing') {
     whyYouMatch.push(`${profile.country} is an eligible partner on the DAC / ODA international development cooperation roster.`);
-    confidenceScore += 20;
-  } else if (isEUEligible) {
+    matchScore += 20;
+  } else if (natKind === 'eu') {
     whyYouMatch.push(`${profile.country} is an EU member state eligible for intra-European and regional study grants.`);
-    confidenceScore += 22;
-  } else if (isWorldwide) {
+    matchScore += 22;
+  } else if (natKind === 'worldwide') {
     whyYouMatch.push(`Open to international applicants worldwide, including students from ${profile.country}.`);
-    confidenceScore += 15;
-  } else if (nationalityStr.includes("commonwealth") && !COMMONWEALTH_COUNTRIES.includes(userCountryLower)) {
+    matchScore += 15;
+  } else if (containsPhrase(nationalityStr, 'commonwealth') && !COMMONWEALTH_COUNTRIES.includes(userCountryLower)) {
     whatCouldDisqualify.push(`${profile.country} is not a Commonwealth member state; this award is strictly restricted to Commonwealth citizens.`);
-    confidenceScore -= 40;
+    matchScore -= 40;
   } else {
     whatToConfirm.push(`Verify annual host country bilateral quotas for ${profile.country}.`);
-    confidenceScore += 5;
+    matchScore += 5;
   }
 
   // 2. CHECK IF PRE-UNIVERSITY APPLICANT
@@ -165,11 +204,11 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     if (!scholarshipSupportsUndergrad) {
       // Disqualify graduate/PhD only programs for pre-university students
       whatCouldDisqualify.push("Requires an existing Bachelor's/Master's degree; this award is strictly for graduate/postdoctoral research.");
-      confidenceScore -= 45;
+      matchScore -= 45;
       cgpaStatus = 'below';
     } else {
       whyYouMatch.push("Directly funds Undergraduate / Bachelor's studies for pre-university and school-leaving applicants.");
-      confidenceScore += 18;
+      matchScore += 18;
 
       // Evaluate Board Result
       if (profile.preUniResult) {
@@ -178,53 +217,53 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
           if (pur.percentage >= 80) {
             cgpaStatus = 'exceeds';
             whyYouMatch.push(`Your board score of ${pur.percentage}% exceeds international undergraduate admission cutoffs.`);
-            confidenceScore += 25;
+            matchScore += 25;
           } else if (pur.percentage >= 70) {
             cgpaStatus = 'meets';
             whyYouMatch.push(`Your board score of ${pur.percentage}% meets standard undergraduate entry criteria.`);
-            confidenceScore += 18;
+            matchScore += 18;
           } else if (pur.percentage >= 60) {
             cgpaStatus = 'borderline';
             whatToConfirm.push(`Board score (${pur.percentage}%) meets baseline eligibility; standard tests (SAT/ACT/IELTS) can bolster profile.`);
-            confidenceScore += 5;
+            matchScore += 5;
           } else {
             cgpaStatus = 'below';
             whatCouldDisqualify.push(`Board score (${pur.percentage}%) is below competitive merit cutoffs.`);
-            confidenceScore -= 20;
+            matchScore -= 20;
           }
         } else if (pur.grades) {
           cgpaStatus = 'exceeds';
           whyYouMatch.push(`A-Level profile (${pur.grades}) fulfills competitive undergraduate entry requirements.`);
-          confidenceScore += 25;
+          matchScore += 25;
         } else if (pur.ibPoints !== undefined) {
           if (pur.ibPoints >= 34) {
             cgpaStatus = 'exceeds';
             whyYouMatch.push(`IB Diploma score (${pur.ibPoints}/45) qualifies for international merit admissions.`);
-            confidenceScore += 25;
+            matchScore += 25;
           } else {
             cgpaStatus = 'meets';
             whyYouMatch.push(`IB Diploma score (${pur.ibPoints}/45) fulfills entry requirements.`);
-            confidenceScore += 15;
+            matchScore += 15;
           }
         } else if (pur.highSchoolGpa !== undefined) {
           if (pur.highSchoolGpa >= 3.5) {
             cgpaStatus = 'exceeds';
             whyYouMatch.push(`High School GPA (${pur.highSchoolGpa}/4.0) satisfies top-tier entry criteria.`);
-            confidenceScore += 25;
+            matchScore += 25;
           } else {
             cgpaStatus = 'meets';
             whyYouMatch.push(`High School GPA meets standard entry requirements.`);
-            confidenceScore += 15;
+            matchScore += 15;
           }
         }
       } else {
         const cgpaDiff = normStudentCGPA - minCGPA;
         if (cgpaDiff >= 0) {
           cgpaStatus = 'meets';
-          confidenceScore += 15;
+          matchScore += 15;
         } else {
           cgpaStatus = 'borderline';
-          confidenceScore += 5;
+          matchScore += 5;
         }
       }
 
@@ -232,11 +271,11 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
       if (profile.preUniResult?.hasFailedPapers) {
         failedSubjectsStatus = 'cleared_required';
         whatToConfirm.push("Verify that all compartment/improvement papers are officially cleared on your final board certificate.");
-        confidenceScore -= 5;
+        matchScore -= 5;
       } else {
         failedSubjectsStatus = 'safe';
         whyYouMatch.push("Clean board examination record with zero compartments or failed papers.");
-        confidenceScore += 12;
+        matchScore += 12;
       }
 
       // Pre-university university context: Never penalize missing university
@@ -252,19 +291,19 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     if (cgpaDiff >= 0.3) {
       cgpaStatus = 'exceeds';
       whyYouMatch.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) substantially exceeds the minimum cutoff (${minCGPA.toFixed(2)}/4.0), making your application highly competitive.`);
-      confidenceScore += 25;
+      matchScore += 25;
     } else if (cgpaDiff >= 0) {
       cgpaStatus = 'meets';
       whyYouMatch.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) meets the stated academic threshold of ${minCGPA.toFixed(2)}/4.0.`);
-      confidenceScore += 15;
+      matchScore += 15;
     } else if (cgpaDiff >= -0.15) {
       cgpaStatus = 'borderline';
       whatToConfirm.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) is marginally below the preferred benchmark of ${minCGPA.toFixed(2)}/4.0; strong GRE scores, publications, or motivated essays can compensate.`);
-      confidenceScore += 2;
+      matchScore += 2;
     } else {
       cgpaStatus = 'below';
       whatCouldDisqualify.push(`Your normalized CGPA (${normStudentCGPA.toFixed(2)}/4.0) does not meet the minimum required academic cutoff (${minCGPA.toFixed(2)}/4.0).`);
-      confidenceScore -= 35;
+      matchScore -= 35;
     }
 
     // 3. UNIVERSITY-LEVEL FAILED SUBJECTS INTELLIGENTLY
@@ -274,26 +313,26 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     if (failedCount === 0) {
       failedSubjectsStatus = 'safe';
       whyYouMatch.push("Pristine transcript with zero failed courses fulfills strict academic standing requirements.");
-      confidenceScore += 12;
+      matchScore += 12;
     } else if (failedCount >= 1 && failedCount <= 2) {
       switch (policy) {
         case 'strict_zero_fails':
           failedSubjectsStatus = 'disqualified';
           whatCouldDisqualify.push(`This ultra-competitive award favors flawless academic transcripts. Having ${failedCount} failed course(s) places you at a disadvantage against candidates with clean transcripts.`);
-          confidenceScore -= 25;
+          matchScore -= 25;
           break;
         case 'no_active_backlogs':
         case 'must_be_cleared':
           failedSubjectsStatus = 'cleared_required';
           whyYouMatch.push(`Earlier failed courses are acceptable once cleared; ensure your ${failedCount} backlog(s) are officially passed before departure.`);
           whatToConfirm.push(`Verify that all ${failedCount} retaken subjects are marked as passed on your final degree transcript.`);
-          confidenceScore += 5;
+          matchScore += 5;
           break;
         case 'allowed_if_cgpa_met':
         default:
           failedSubjectsStatus = 'safe';
           whyYouMatch.push(`The provider focuses on overall cumulative CGPA rather than isolated course failures. Your ${failedCount} failed subject(s) do not disqualify you.`);
-          confidenceScore += 8;
+          matchScore += 8;
           break;
       }
     } else if (failedCount >= 3 && failedCount <= 5) {
@@ -301,27 +340,27 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
         case 'strict_zero_fails':
           failedSubjectsStatus = 'disqualified';
           whatCouldDisqualify.push(`Having ${failedCount} failed subjects will likely disqualify you from this top-tier merit award where unblemished records are expected.`);
-          confidenceScore -= 35;
+          matchScore -= 35;
           break;
         case 'no_active_backlogs':
         case 'must_be_cleared':
           failedSubjectsStatus = 'cleared_required';
           whatCouldDisqualify.push(`You have ${failedCount} failed subjects. Official rules require every backlog to be remediated and an unencumbered degree conferred.`);
           whatToConfirm.push(`Confirm timeline to clear all ${failedCount} backlogs before the scholarship visa issuance window.`);
-          confidenceScore -= 10;
+          matchScore -= 10;
           break;
         case 'allowed_if_cgpa_met':
         default:
           failedSubjectsStatus = 'cleared_required';
           whyYouMatch.push(`Cumulative CGPA rule applies: if your overall grade point average is maintained, your ${failedCount} failed courses remain permissible.`);
           whatToConfirm.push(`Check if host department imposes a cap on the total number of course retakes allowed.`);
-          confidenceScore -= 5;
+          matchScore -= 5;
           break;
       }
     } else {
       failedSubjectsStatus = 'cleared_required';
       whatCouldDisqualify.push(`Having ${failedCount} failed subjects indicates substantial academic setbacks. Many selective universities will require a strong statement of explanation or mitigating circumstances.`);
-      confidenceScore -= 28;
+      matchScore -= 28;
     }
 
     // 4. UNIVERSITY CONTEXT
@@ -334,26 +373,30 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
   if (profile.studyLevel) {
     if (matchesStudyLevels(scholarship, [profile.studyLevel])) {
       whyYouMatch.push(`Provides verified funding for your target ${profile.studyLevel} program.`);
-      confidenceScore += 10;
+      matchScore += 10;
     } else {
       whatCouldDisqualify.push(`This scholarship targets academic levels differing from your selected target (${profile.studyLevel}).`);
-      confidenceScore -= 25;
+      matchScore -= 25;
     }
   }
 
   // 5B. TARGET DESTINATION SENSITIVITY
   if (profile.targetDestination && profile.targetDestination !== 'Worldwide') {
-    if (scholarship.destinationCountry.toLowerCase().includes(profile.targetDestination.toLowerCase())) {
+    if (containsPhrase(scholarship.destinationCountry, profile.targetDestination)) {
       whyYouMatch.push(`Matches your target study destination (${scholarship.destinationCountry}).`);
-      confidenceScore += 12;
+      matchScore += 12;
     }
-  } else if (profile.degreeLevel && profile.degreeLevel !== 'any') {
+  }
+
+  // 5C. DEGREE LEVEL — scored exactly once here (the old duplicate §6 block
+  // scored it a second time and is removed).
+  if (profile.degreeLevel && profile.degreeLevel !== 'any') {
     if (scholarship.degreeLevels.includes(profile.degreeLevel as any)) {
       whyYouMatch.push(`Provides direct funding for your intended ${profile.degreeLevel.toUpperCase()} degree level.`);
-      confidenceScore += 8;
+      matchScore += 8;
     } else {
       whatCouldDisqualify.push(`This scholarship specifically targets ${scholarship.degreeLevels.join(", ").toUpperCase()} studies, differing from your selected target (${profile.degreeLevel.toUpperCase()}).`);
-      confidenceScore -= 20;
+      matchScore -= 20;
     }
   }
 
@@ -365,24 +408,13 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
 
     if (subjectMatchStatus === 'direct_major_match') {
       whyYouMatch.push(subjectEval.reason);
-      confidenceScore += 18;
+      matchScore += 18;
     } else if (subjectMatchStatus === 'open_all_fields') {
       whyYouMatch.push(subjectEval.reason);
-      confidenceScore += 6;
+      matchScore += 6;
     } else {
       whatCouldDisqualify.push(subjectEval.reason);
-      confidenceScore -= 30;
-    }
-  }
-
-  // 6. DEGREE LEVEL
-  if (profile.degreeLevel && profile.degreeLevel !== 'any') {
-    if (scholarship.degreeLevels.includes(profile.degreeLevel as any)) {
-      whyYouMatch.push(`Provides direct funding for your intended ${profile.degreeLevel.toUpperCase()} degree level.`);
-      confidenceScore += 8;
-    } else {
-      whatCouldDisqualify.push(`This scholarship specifically targets ${scholarship.degreeLevels.join(", ").toUpperCase()} studies, differing from your selected target (${profile.degreeLevel.toUpperCase()}).`);
-      confidenceScore -= 20;
+      matchScore -= 30;
     }
   }
 
@@ -402,7 +434,7 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
 
   if (scholarship.deadlineStatus === 'closed') {
     category = 'CLOSED_EXPIRED';
-  } else if (isExplicitlyExcluded || (nationalityStr.includes("commonwealth") && !COMMONWEALTH_COUNTRIES.includes(userCountryLower))) {
+  } else if (isExplicitlyExcluded || (containsPhrase(nationalityStr, 'commonwealth') && !COMMONWEALTH_COUNTRIES.includes(userCountryLower))) {
     category = 'LOW_MATCH';
   } else if (cgpaStatus === 'below') {
     category = 'LOW_MATCH';
@@ -410,21 +442,21 @@ export function evaluateEligibility(scholarship: Scholarship, profile: StudentPr
     category = 'LOW_MATCH';
   } else if (subjectMatchStatus === 'restricted_field') {
     category = 'LOW_MATCH';
-  } else if (confidenceScore >= 70 && cgpaStatus !== 'borderline') {
+  } else if (matchScore >= 70 && cgpaStatus !== 'borderline') {
     category = 'STRONG_MATCH';
-  } else if (confidenceScore >= 50) {
+  } else if (matchScore >= 50) {
     category = 'LIKELY_MATCH';
   } else {
     category = 'POSSIBLE_MATCH';
   }
 
-  // Clamp confidence score 10 - 99
-  confidenceScore = Math.min(99, Math.max(10, confidenceScore));
+  // Clamp the internal points to 10 - 99 (ranking only; never a percentage).
+  matchScore = Math.min(99, Math.max(10, matchScore));
 
   return {
     scholarship,
     category,
-    confidenceScore,
+    matchScore,
     whyYouMatch,
     whatCouldDisqualify,
     whatToConfirm,
@@ -453,8 +485,8 @@ export function evaluateSubjectMatch(
   const userSubjectLower = userSubject.trim().toLowerCase();
   const fieldsJoined = scholarship.fields.join(" ").toLowerCase();
 
-  // Check universal program fields
-  const isUniversal = fieldsJoined.includes("all fields") || fieldsJoined.includes("all one-year") || fieldsJoined.includes("all majors") || fieldsJoined.includes("all master") || fieldsJoined.includes("all degree");
+  // Universal program fields, as whole phrases.
+  const isUniversal = containsPhrase(fieldsJoined, 'all fields') || containsPhrase(fieldsJoined, 'all one-year') || containsPhrase(fieldsJoined, 'all majors') || containsPhrase(fieldsJoined, 'all master') || containsPhrase(fieldsJoined, 'all degree');
 
   // Lookup subject in database
   const subjectObj = findSubjectByName(userSubject);
@@ -468,7 +500,9 @@ export function evaluateSubjectMatch(
     const fLower = field.toLowerCase();
     return termsToCheck.some(term => {
       if (term.length < 3) return false;
-      return fLower.includes(term) || term.includes(fLower);
+      // Whole-phrase matching both ways, so "art" cannot match "earth
+      // science" and "law" cannot match "claw" via substring.
+      return containsPhrase(fLower, term) || (fLower.length >= 3 && containsPhrase(term, fLower));
     });
   });
 
@@ -571,20 +605,23 @@ export function sortAndFilterMatches(
       };
       const rankDiff = rankOrder[b.category] - rankOrder[a.category];
       if (rankDiff !== 0) return rankDiff;
-      return b.confidenceScore - a.confidenceScore;
+      return b.matchScore - a.matchScore;
     }
 
     if (sortBy === 'deadline_soonest') {
-      const aDays = a.scholarship.daysRemaining ?? 999;
-      const bDays = b.scholarship.daysRemaining ?? 999;
-      return aDays - bDays;
+      // Closed listings sort last, whatever their stored daysRemaining says.
+      const daysOf = (m: MatchResult) =>
+        m.scholarship.deadlineStatus === 'closed'
+          ? Number.POSITIVE_INFINITY
+          : (computeDeadlineStatus(m.scholarship.deadline).daysRemaining ?? 999);
+      return daysOf(a) - daysOf(b);
     }
 
     if (sortBy === 'fully_funded') {
       const isAFully = a.scholarship.fundingType === 'fully_funded' ? 1 : 0;
       const isBFully = b.scholarship.fundingType === 'fully_funded' ? 1 : 0;
       if (isBFully !== isAFully) return isBFully - isAFully;
-      return b.confidenceScore - a.confidenceScore;
+      return b.matchScore - a.matchScore;
     }
 
     if (sortBy === 'recently_verified') {

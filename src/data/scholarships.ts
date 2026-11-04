@@ -8,7 +8,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "United States Federal Government",
     jurisdiction: "United States",
     lastChecked: "2026-10-01",
-    status: "verified",
+    status: "active",
     recordsTracked: 142
   },
   {
@@ -18,7 +18,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "HM Government of the United Kingdom",
     jurisdiction: "United Kingdom",
     lastChecked: "2026-10-03",
-    status: "verified",
+    status: "active",
     recordsTracked: 89
   },
   {
@@ -28,17 +28,17 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Federal Republic of Germany",
     jurisdiction: "Germany",
     lastChecked: "2026-10-04",
-    status: "verified",
+    status: "active",
     recordsTracked: 215
   },
   {
     id: "source-gov-jp",
     name: "Ministry of Education, Culture, Sports, Science and Technology (MEXT)",
-    portalUrl: "https://www.studyinjapan.go.jp/en/planning/by-style/pamphlet",
+    portalUrl: "https://www.studyinjapan.go.jp/en/",
     authority: "Government of Japan",
     jurisdiction: "Japan",
     lastChecked: "2026-09-28",
-    status: "verified",
+    status: "active",
     recordsTracked: 64
   },
   {
@@ -48,7 +48,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Ministry of Education, Republic of Korea",
     jurisdiction: "South Korea",
     lastChecked: "2026-10-02",
-    status: "verified",
+    status: "active",
     recordsTracked: 52
   },
   {
@@ -58,7 +58,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Government of Sweden",
     jurisdiction: "Sweden",
     lastChecked: "2026-10-05",
-    status: "verified",
+    status: "active",
     recordsTracked: 38
   },
   {
@@ -68,7 +68,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Australian Government",
     jurisdiction: "Australia",
     lastChecked: "2026-09-29",
-    status: "verified",
+    status: "active",
     recordsTracked: 45
   },
   {
@@ -78,7 +78,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Republic of Türkiye",
     jurisdiction: "Turkey",
     lastChecked: "2026-10-02",
-    status: "verified",
+    status: "active",
     recordsTracked: 76
   },
   {
@@ -88,7 +88,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Swiss Confederation",
     jurisdiction: "Switzerland",
     lastChecked: "2026-09-30",
-    status: "verified",
+    status: "active",
     recordsTracked: 31
   },
   {
@@ -98,7 +98,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Ministry for Europe and Foreign Affairs, France",
     jurisdiction: "France",
     lastChecked: "2026-10-04",
-    status: "verified",
+    status: "active",
     recordsTracked: 41
   },
   {
@@ -108,7 +108,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "European Commission",
     jurisdiction: "European Union",
     lastChecked: "2026-10-05",
-    status: "verified",
+    status: "active",
     recordsTracked: 184
   },
   {
@@ -118,7 +118,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "University of Cambridge & Bill and Melinda Gates Foundation",
     jurisdiction: "United Kingdom",
     lastChecked: "2026-10-04",
-    status: "verified",
+    status: "active",
     recordsTracked: 12
   },
   {
@@ -128,7 +128,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "University of Oxford",
     jurisdiction: "United Kingdom",
     lastChecked: "2026-10-03",
-    status: "verified",
+    status: "active",
     recordsTracked: 18
   },
   {
@@ -138,7 +138,7 @@ export const OFFICIAL_SOURCES: VerificationSourceInfo[] = [
     authority: "Stanford University",
     jurisdiction: "United States",
     lastChecked: "2026-10-01",
-    status: "verified",
+    status: "active",
     recordsTracked: 15
   }
 ];
@@ -178,7 +178,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 23,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Bachelor's degree equivalent to a 4-year US degree by time of departure; university placement facilitated by IIE.",
     languageRequirement: "TOEFL iBT (min 80) or IELTS (min 6.5) required by final selection stage.",
@@ -195,7 +196,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Personal Statement",
       "Valid Passport copy"
     ],
-    officialSourceNote: "Verified against U.S. Department of State ECA portal. National deadlines vary between April and October depending on the local commission."
+    officialSourceNote: "Source: U.S. Department of State ECA portal. National deadlines vary between April and October depending on the local commission."
   },
   {
     id: "chevening-scholarships-uk",
@@ -230,8 +231,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-08-05",
     deadlineStatus: "open",
     daysRemaining: 28,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 0, applicationHttpStatus: 0, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "At least 2 years of work experience (2,800 hours equivalent) and an offer of admission from at least one eligible UK Master's course by July.",
     languageRequirement: "No Chevening language test requirement; applicant must meet chosen UK university's English condition.",
@@ -247,7 +249,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "3 UK university course choices",
       "Passport / National ID"
     ],
-    officialSourceNote: "Chevening official portal verified. One of the world's most prestigious government leadership awards."
+    officialSourceNote: "Chevening official portal (as listed in the catalog; confirm on the official page). One of the world's most prestigious government leadership awards."
   },
   {
     id: "daad-epos-germany",
@@ -255,7 +257,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "German Academic Exchange Service (DAAD)",
     destinationCountry: "Germany",
     officialUrl: "https://www.daad.de/en/study-and-research-in-germany/scholarships",
-    applicationUrl: "https://www.daad.de/en/study-and-research-in-germany/scholarships/daad-scholarships/application-portal",
+    applicationUrl: "https://www.daad.de/en/study-and-research-in-germany/scholarships",
     eligibleNationalities: ["Developing and emerging countries (DAC List of ODA Recipients including Asia, Africa, Latin America)"],
     degreeLevels: ["masters", "phd"],
     levels: ["Master's", "PhD / Doctorate", "Postgraduate / Graduate"],
@@ -282,7 +284,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 53,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Bachelor's degree in relevant discipline and at least 2 years of professional experience in development-relevant organization.",
     languageRequirement: "IELTS 6.0+ or TOEFL 80+ for English programs, or TestDaF/DSH for German-taught tracks.",
@@ -298,14 +301,14 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Employer recommendation & proof of 2 years work experience",
       "Academic transcripts and degree certificates"
     ],
-    officialSourceNote: "Source verified directly from DAAD Bonn portal. EPOS program covers over 40 specialized English-taught master's degrees in Germany."
+    officialSourceNote: "Source: DAAD Bonn portal. EPOS program covers over 40 specialized English-taught master's degrees in Germany."
   },
   {
     id: "mext-japanese-government",
     name: "MEXT Japanese Government Scholarship (Research / Graduate)",
     provider: "Ministry of Education, Culture, Sports, Science and Technology (Japan)",
     destinationCountry: "Japan",
-    officialUrl: "https://www.studyinjapan.go.jp/en/planning/by-style/pamphlet",
+    officialUrl: "https://www.studyinjapan.go.jp/en/",
     applicationUrl: "https://www.mext.go.jp/en/policy/education/highered/title02/detail02/sdetail02/1373897.htm",
     eligibleNationalities: ["Citizens of countries that have diplomatic relations with Japan"],
     ineligibleNationalities: ["Japanese nationals"],
@@ -334,7 +337,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 99,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-02",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Undergraduate degree by time of arrival in Japan; age under 35 years old at time of application.",
     languageRequirement: "Willingness to learn Japanese; English proficiency (TOEFL/IELTS) for English-degree tracks.",
@@ -351,7 +355,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Recommendation letter from Dean/Academic Advisor",
       "Certificate of health"
     ],
-    officialSourceNote: "Verified with MEXT Higher Education Bureau. University Recommendation route currently open for 2027 intake."
+    officialSourceNote: "Source: MEXT Higher Education Bureau. University Recommendation route currently open for 2027 intake."
   },
   {
     id: "gks-global-korea-scholarship",
@@ -387,7 +391,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "closing_soon",
     daysRemaining: 17,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Undergraduate degree or equivalent by February of intake year; under 40 years of age for graduate applicants.",
     languageRequirement: "TOEFL, IELTS, or TOPIK scores confer bonus points but not mandatory initially; 1-year mandatory Korean language training included.",
@@ -404,7 +409,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Apostilled Bachelor's Graduation Certificate & Transcript",
       "Proof of Citizenship documents (applicant & parents)"
     ],
-    officialSourceNote: "Verified against NIIED official notice. Undergraduate track closes October; Graduate track opens February."
+    officialSourceNote: "Source: NIIED official notice. Undergraduate track closes October; Graduate track opens February."
   },
   {
     id: "swedish-institute-global-professionals",
@@ -412,7 +417,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "Swedish Institute (Government of Sweden)",
     destinationCountry: "Sweden",
     officialUrl: "https://si.se/en/apply/scholarships/swedish-institute-scholarships-for-global-professionals",
-    applicationUrl: "https://si.se/en/apply/scholarships/swedish-institute-scholarships-for-global-professionals/how-to-apply",
+    applicationUrl: "https://si.se/en/apply/scholarships/swedish-institute-scholarships-for-global-professionals",
     eligibleNationalities: ["Citizens of 41 eligible countries (including Armenia, Bangladesh, Bolivia, Brazil, Cambodia, Colombia, Ecuador, Egypt, Georgia, Ghana, Guatemala, Indonesia, Jordan, Kenya, Morocco, Nigeria, Pakistan, Philippines, Rwanda, South Africa, Sri Lanka, Tanzania, Turkey, Uganda, Ukraine, Vietnam, Zimbabwe, etc.)"],
     degreeLevels: ["masters"],
     levels: ["Master's", "Postgraduate / Graduate"],
@@ -439,7 +444,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 100,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-03",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Must apply to eligible Swedish master's on universityadmissions.se and have documented at least 3,000 hours of work experience.",
     languageRequirement: "Must meet English 6 requirement (IELTS 6.5 or TOEFL 90 or English medium instruction where recognized).",
@@ -455,7 +461,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Valid proof of work and leadership experience on official SI form",
       "Copy of passport"
     ],
-    officialSourceNote: "Verified against Swedish Institute official site. Work experience forms are mandatory."
+    officialSourceNote: "Source: Swedish Institute official site. Work experience forms are mandatory."
   },
   {
     id: "turkiye-burslari-government",
@@ -491,7 +497,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 135,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-02",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Under 21 years old for undergraduate, under 30 for Master's, under 35 for PhD at time of application.",
     languageRequirement: "Turkish proficiency not required beforehand (1-year language course provided). Some English-taught majors require TOEFL/IELTS.",
@@ -508,7 +515,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Letter of Intent and Research Proposal (for graduate)",
       "Two academic recommendation letters"
     ],
-    officialSourceNote: "Verified with official YTB Turkish Scholarships portal. Includes full university placement."
+    officialSourceNote: "Source: official YTB Turkish Scholarships portal. Includes full university placement."
   },
   {
     id: "australia-awards-scholarships",
@@ -542,8 +549,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2027-02-01",
     deadlineStatus: "upcoming",
     daysRemaining: 204,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-09-29",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 0, applicationHttpStatus: 503, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Citizen of participating country; commit to return home for at least 2 years post-graduation.",
     languageRequirement: "IELTS 6.5 (no band less than 6.0) or TOEFL iBT 84 or PTE Academic 58.",
@@ -560,7 +568,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "English language proficiency test results",
       "Development impact and reintegration statement"
     ],
-    officialSourceNote: "DFAT official guidelines verified. High funding coverage with full family support provisions in select streams."
+    officialSourceNote: "DFAT official guidelines (as listed in the catalog; confirm on the official page). High funding coverage with full family support provisions in select streams."
   },
   {
     id: "swiss-government-excellence",
@@ -568,7 +576,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "Federal Commission for Scholarships for Foreign Students (FCS), Switzerland",
     destinationCountry: "Switzerland",
     officialUrl: "https://www.sbfi.admin.ch/sbfi/en/home/education/scholarships-and-grants/swiss-government-excellence-scholarships.html",
-    applicationUrl: "https://www.sbfi.admin.ch/sbfi/en/home/education/scholarships-and-grants/swiss-government-excellence-scholarships/countries.html",
+    applicationUrl: "https://www.sbfi.admin.ch/sbfi/en/home/education/scholarships-and-grants/swiss-government-excellence-scholarships.html",
     eligibleNationalities: ["Graduates from over 180 countries worldwide"],
     ineligibleNationalities: ["Swiss nationals"],
     degreeLevels: ["phd", "postdoc"],
@@ -596,7 +604,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 38,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Master's degree by July 2027; mandatory written endorsement letter from a tenured professor at a Swiss university willing to supervise.",
     languageRequirement: "Fluency in language of research (English, German, French, or Italian depending on lab).",
@@ -613,7 +622,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two letters of recommendation from home university professors",
       "Diplomas and certified transcripts with official translations"
     ],
-    officialSourceNote: "Verified against State Secretariat for Education, Research and Innovation (SBFI). Professor support letter is strictly required."
+    officialSourceNote: "Source: State Secretariat for Education, Research and Innovation (SBFI). Professor support letter is strictly required."
   },
   {
     id: "eiffel-excellence-france",
@@ -649,7 +658,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 94,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Age under 25 years old for Master's; under 30 years old for PhD at application date. Nominated by French university.",
     languageRequirement: "Adequate language level for chosen program (French B2/C1 or English for English-taught master's).",
@@ -665,7 +675,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Language proficiency test certificate",
       "Letter of support from hosting research director (for PhD)"
     ],
-    officialSourceNote: "Campus France verified. Applications must go through the French university, not directly to Campus France."
+    officialSourceNote: "Campus France (as listed in the catalog; confirm on the official page). Applications must go through the French university, not directly to Campus France."
   },
   {
     id: "erasmus-mundus-joint-masters",
@@ -700,7 +710,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 99,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Bachelor's degree or recognized equivalent completed prior to programme commencement.",
     languageRequirement: "English language proficiency (usually IELTS 6.5 or TOEFL 90).",
@@ -717,7 +728,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two letters of academic recommendation",
       "Proof of English proficiency"
     ],
-    officialSourceNote: "European Commission official portal verified. You can apply to up to 3 Erasmus Mundus master's programmes simultaneously."
+    officialSourceNote: "European Commission official portal (as listed in the catalog; confirm on the official page). You can apply to up to 3 Erasmus Mundus master's programmes simultaneously."
   },
   {
     id: "gates-cambridge-scholarship",
@@ -753,7 +764,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 56,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "Admission offer to University of Cambridge for an eligible postgraduate degree.",
     languageRequirement: "Must satisfy Cambridge department English language condition (usually IELTS 7.5 with 7.0 bands).",
@@ -769,7 +781,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Research proposal (for PhD)",
       "Specific Gates Cambridge reference letter in addition to academic references"
     ],
-    officialSourceNote: "Gates Cambridge Trust verified. US round closes October; International round closes early December."
+    officialSourceNote: "Gates Cambridge Trust (as listed in the catalog; confirm on the official page). US round closes October; International round closes early December."
   },
   {
     id: "clarendon-fund-oxford",
@@ -804,7 +816,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 61,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-03",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Apply for graduate study at Oxford before the relevant December or January course deadline; automatic consideration.",
     languageRequirement: "Standard Oxford English language requirements (IELTS 7.5 or TOEFL 110 for most faculties).",
@@ -820,7 +833,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "CV / resume",
       "Written work sample (where requested by department)"
     ],
-    officialSourceNote: "University of Oxford verified. Over 160 fully funded Clarendon awards granted every year."
+    officialSourceNote: "University of Oxford (as listed in the catalog; confirm on the official page). Over 160 fully funded Clarendon awards granted every year."
   },
   {
     id: "knight-hennessy-stanford",
@@ -855,7 +868,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "closing_soon",
     daysRemaining: 6,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-01",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "First bachelor's degree earned within the last 7 years. Must apply separately to Stanford graduate degree department.",
     languageRequirement: "Standard Stanford department requirements (TOEFL required for international degrees).",
@@ -871,7 +885,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two recommendation letters evaluating leadership and character",
       "Three short answer essays and one video reflection"
     ],
-    officialSourceNote: "Stanford Knight-Hennessy portal verified. Extremely prestigious program with 100 scholars per cohort."
+    officialSourceNote: "Stanford Knight-Hennessy portal (as listed in the catalog; confirm on the official page). Extremely prestigious program with 100 scholars per cohort."
   },
   {
     id: "toronto-lester-pearson",
@@ -906,7 +920,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 53,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-02",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Currently in final year of secondary school or graduated no earlier than June; nominated by your high school.",
     languageRequirement: "U of T English language requirements (IELTS 6.5 or TOEFL 100).",
@@ -921,15 +936,15 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Pearson Scholarship essays and personal statements",
       "Extracurricular leadership dossier"
     ],
-    officialSourceNote: "University of Toronto Admissions verified. Covers 37 scholars annually."
+    officialSourceNote: "University of Toronto Admissions (as listed in the catalog; confirm on the official page). Covers 37 scholars annually."
   },
   {
     id: "singa-singapore-agency",
     name: "Singapore International Graduate Award (SINGA)",
     provider: "Agency for Science, Technology and Research (A*STAR) & Singapore Universities (NUS, NTU, SUTD)",
     destinationCountry: "Singapore",
-    officialUrl: "https://www.a-star.edu.sg/Scholarships/for-graduate-studies/singapore-international-graduate-award-singa",
-    applicationUrl: "https://www.a-star.edu.sg/Scholarships/for-graduate-studies/singapore-international-graduate-award-singa",
+    officialUrl: "https://www.a-star.edu.sg/Scholarships",
+    applicationUrl: "https://www.a-star.edu.sg/Scholarships",
     eligibleNationalities: ["All international graduates with passion for research"],
     ineligibleNationalities: ["Singapore Citizens and Permanent Residents"],
     degreeLevels: ["phd"],
@@ -957,7 +972,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 54,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-03",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Bachelor's or Master's degree in science, engineering, or IT; strong research references.",
     languageRequirement: "Good spoken and written English skills (IELTS/TOEFL recommended though not strictly mandatory if degree was in English).",
@@ -973,7 +989,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "2 Recommendation reports from academic referees",
       "Research proposal or statement of interests"
     ],
-    officialSourceNote: "A*STAR Singapore verified. August 2027 intake deadline is December 1, 2026."
+    officialSourceNote: "A*STAR Singapore (as listed in the catalog; confirm on the official page). August 2027 intake deadline is December 1, 2026."
   },
   {
     id: "eth-zurich-excellence",
@@ -1008,7 +1024,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 68,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Bachelor's degree from a recognized university with standing in top 10% of cohort.",
     languageRequirement: "C1 English level (IELTS 7.0 or TOEFL 100) or C1 German for German-taught tracks.",
@@ -1024,7 +1041,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Letter of motivation (1-2 pages)",
       "Two letters of recommendation from professors"
     ],
-    officialSourceNote: "ETH Zurich Rectorate verified. Application window opens November 1 and closes December 15."
+    officialSourceNote: "ETH Zurich Rectorate (as listed in the catalog; confirm on the official page). Application window opens November 1 and closes December 15."
   },
   {
     id: "stipendium-hungaricum",
@@ -1059,8 +1076,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-11-15",
     deadlineStatus: "upcoming",
     daysRemaining: 99,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-03",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 0, applicationHttpStatus: 200, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Nomination by sending partner authority in home country and passing entrance interview/exam.",
     languageRequirement: "B2 English certificate (IELTS 5.5 - 6.0 or TOEFL 72) or English proficiency letter.",
@@ -1077,14 +1095,14 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Proof of foreign language proficiency",
       "Medical certificate from general practitioner"
     ],
-    officialSourceNote: "Tempus Public Foundation verified. Over 5,000 students awarded each academic year."
+    officialSourceNote: "Tempus Public Foundation (as listed in the catalog; confirm on the official page). Over 5,000 students awarded each academic year."
   },
   {
     id: "invest-your-talent-italy",
     name: "Invest Your Talent in Italy (IYT)",
     provider: "Ministry of Foreign Affairs and International Cooperation (MAECI), Italy",
     destinationCountry: "Italy",
-    officialUrl: "https://www.esteri.it/en/opportunita/borse-di-studio/per-cittadini-stranieri/invest-your-talent-in-italy",
+    officialUrl: "https://investyourtalentapplication.esteri.it",
     applicationUrl: "https://investyourtalentapplication.esteri.it",
     eligibleNationalities: ["Citizens of Azerbaijan, Armenia, Brazil, Colombia, Egypt, Ethiopia, Ghana, India, Indonesia, Iran, Kazakhstan, Mexico, Republic of Korea, People's Republic of China, Tunisia, Turkey, Vietnam"],
     degreeLevels: ["masters"],
@@ -1112,7 +1130,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 143,
     verificationStatus: "verified_official",
-    lastVerified: "2026-09-30",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Bachelor's degree completed; admitted to designated Master's degree at participating Italian universities (e.g., Politecnico di Milano, Politecnico di Torino, Sapienza).",
     languageRequirement: "B2 English certificate (IELTS 6.0, TOEFL 80) or English medium of instruction certificate.",
@@ -1128,7 +1147,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Curriculum Vitae",
       "Proof of English proficiency"
     ],
-    officialSourceNote: "Italian Ministry of Foreign Affairs verified. Distinctive for guaranteed industrial corporate internship in Italy."
+    officialSourceNote: "Italian Ministry of Foreign Affairs (as listed in the catalog; confirm on the official page). Distinctive for guaranteed industrial corporate internship in Italy."
   },
   {
     id: "commonwealth-masters-phd",
@@ -1164,7 +1183,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "closing_soon",
     daysRemaining: 9,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-06",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 307, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Nominated by an official national nominating agency or non-governmental organization in home country.",
     languageRequirement: "Must meet UK host university English standard (IELTS 6.5 or equivalent).",
@@ -1179,7 +1199,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Detailed development impact statement across four focus themes",
       "Passport or national identity card"
     ],
-    officialSourceNote: "Verified against Commonwealth Scholarship Commission official portal."
+    officialSourceNote: "Source: Commonwealth Scholarship Commission official portal."
   },
   {
     id: "csc-chinese-government-scholarship",
@@ -1214,8 +1234,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-11-01",
     deadlineStatus: "upcoming",
     daysRemaining: 174,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 412, applicationHttpStatus: 412, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Age under 25 for Bachelor's, under 35 for Master's, under 40 for PhD.",
     languageRequirement: "HSK 4/5 for Chinese-taught programs, or TOEFL/IELTS/English proficiency certificate for English tracks.",
@@ -1231,7 +1252,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two recommendation letters signed by professors or associate professors",
       "Foreigner Physical Examination Form"
     ],
-    officialSourceNote: "Verified against China Scholarship Council (CSC) official portal."
+    officialSourceNote: "Source: China Scholarship Council (CSC) official portal."
   },
   {
     id: "new-zealand-manaaki-scholarship",
@@ -1239,7 +1260,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "Ministry of Foreign Affairs and Trade (MFAT), New Zealand",
     destinationCountry: "New Zealand",
     officialUrl: "https://www.nzscholarships.govt.nz",
-    applicationUrl: "https://www.manaakicustomers.force.com",
+    applicationUrl: "https://www.nzscholarships.govt.nz",
     eligibleNationalities: ["Citizens of eligible developing countries in Pacific, Southeast Asia, South Asia, Africa, and Latin America"],
     degreeLevels: ["masters", "phd"],
     levels: ["Master's", "PhD / Doctorate", "Postgraduate / Graduate"],
@@ -1266,7 +1287,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 143,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "At least 1 year of full-time work experience (or 2 years part-time) related to career objective.",
     languageRequirement: "IELTS 6.5 (no band below 6.0) or TOEFL iBT 90.",
@@ -1281,7 +1303,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Verified employment history documentation",
       "Valid IELTS or TOEFL certificate"
     ],
-    officialSourceNote: "Verified against New Zealand Foreign Affairs and Trade (MFAT) scholarship portal."
+    officialSourceNote: "Source: New Zealand Foreign Affairs and Trade (MFAT) scholarship portal."
   },
   {
     id: "holland-nl-scholarship",
@@ -1317,7 +1339,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 116,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Apply for a degree at a participating Dutch research university or applied sciences university.",
     languageRequirement: "Meets Dutch university English requirement (IELTS 6.5 or TOEFL 90).",
@@ -1332,7 +1355,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Motivation letter explaining why you chose the Netherlands",
       "Transcripts of prior academic degrees"
     ],
-    officialSourceNote: "Verified against Study in NL / Nuffic official scholarship service."
+    officialSourceNote: "Source: Study in NL / Nuffic official scholarship service."
   },
   {
     id: "vlir-uos-belgium",
@@ -1367,7 +1390,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 116,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Age under 35 for Master's at time of application; bachelor's degree in relevant discipline.",
     languageRequirement: "IELTS 6.5 or TOEFL 80 or proof of instruction in English.",
@@ -1382,7 +1406,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two letters of recommendation",
       "Employer statement endorsing your scholarship candidacy"
     ],
-    officialSourceNote: "Verified against Flemish Interuniversity Council (VLIR-UOS) official guidelines."
+    officialSourceNote: "Source: Flemish Interuniversity Council (VLIR-UOS) official guidelines."
   },
   {
     id: "austrian-oead-ernst-mach",
@@ -1418,7 +1442,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 144,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Enrolled in a master's or PhD programme in home country or recently graduated; supervisor endorsement from Austrian host university.",
     languageRequirement: "Adequate English or German proficiency for research lab.",
@@ -1433,7 +1458,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Detailed research and study proposal",
       "Passport scan and transcripts"
     ],
-    officialSourceNote: "Verified against OeAD Austria grants database (grants.at)."
+    officialSourceNote: "Source: OeAD Austria grants database (grants.at)."
   },
   {
     id: "rhodes-scholarship-oxford",
@@ -1468,7 +1493,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "closing_soon",
     daysRemaining: 7,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-06",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "Age 18-24 (or under 27 with completed bachelor's); first-class undergraduate academic degree.",
     languageRequirement: "Must meet Oxford postgraduate English conditions (IELTS 7.5 or TOEFL 110).",
@@ -1485,14 +1511,14 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Birth certificate or passport",
       "6-8 Letters of reference"
     ],
-    officialSourceNote: "Verified against Rhodes Trust Oxford canonical portal."
+    officialSourceNote: "Source: Rhodes Trust Oxford canonical portal."
   },
   {
     id: "schwarzman-scholars-tsinghua",
     name: "Schwarzman Scholars at Tsinghua University",
     provider: "Schwarzman Scholars / Tsinghua University",
     destinationCountry: "China",
-    officialUrl: "https://www.schwarzman scholars.org",
+    officialUrl: "https://www.schwarzmanscholars.org",
     applicationUrl: "https://www.schwarzmanscholars.org/admissions",
     eligibleNationalities: ["Citizens of all countries worldwide"],
     degreeLevels: ["masters"],
@@ -1519,8 +1545,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-04-15",
     deadlineStatus: "closing_soon",
     daysRemaining: 10,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-06",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 403, applicationHttpStatus: 403, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "Undergraduate degree by August of matriculation; age 18 to 28.",
     languageRequirement: "TOEFL iBT (100) or IELTS (7.0) for non-native English speakers.",
@@ -1535,7 +1562,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Current resume / CV (max 2 pages)",
       "Three recommendation letters"
     ],
-    officialSourceNote: "Verified against Schwarzman Scholars official admissions portal."
+    officialSourceNote: "Source: Schwarzman Scholars official admissions portal."
   },
   {
     id: "melbourne-research-scholarship",
@@ -1569,8 +1596,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-06-01",
     deadlineStatus: "open",
     daysRemaining: 23,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 403, applicationHttpStatus: 403, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Unconditional admission to a graduate research degree at University of Melbourne.",
     languageRequirement: "Standard Melbourne English language requirements (IELTS 6.5-7.0 depending on faculty).",
@@ -1584,14 +1612,14 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Referees' contact details for two academic reports",
       "Curriculum Vitae highlighting any publications"
     ],
-    officialSourceNote: "Verified against University of Melbourne Graduate Research Scholarships directory."
+    officialSourceNote: "Source: University of Melbourne Graduate Research Scholarships directory."
   },
   {
     id: "sydney-international-research",
     name: "University of Sydney International Strategic Scholarship (USydIS)",
     provider: "University of Sydney",
     destinationCountry: "Australia",
-    officialUrl: "https://www.sydney.edu.au/scholarships/e/university-of-sydney-international-strategic-scholarship.html",
+    officialUrl: "https://www.sydney.edu.au/scholarships/",
     applicationUrl: "https://www.sydney.edu.au",
     eligibleNationalities: ["International students of all nationalities"],
     ineligibleNationalities: ["Australian / New Zealand citizens and Australian Permanent Residents"],
@@ -1620,7 +1648,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 68,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Bachelor's degree with first-class honours or Master's with substantial research thesis.",
     languageRequirement: "IELTS 6.5 or 7.0 depending on department.",
@@ -1634,7 +1663,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Evidence of research outputs or publications",
       "Two academic referee reports"
     ],
-    officialSourceNote: "Verified against University of Sydney official scholarships office."
+    officialSourceNote: "Source: University of Sydney official scholarships office."
   },
   {
     id: "kaust-fellowship-saudi",
@@ -1669,7 +1698,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 99,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-06",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Bachelor's or Master's in a STEM field; rigorous technical faculty interview.",
     languageRequirement: "TOEFL iBT 79 or IELTS 6.5.",
@@ -1685,7 +1715,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Three letters of recommendation from faculty or research supervisors",
       "Official TOEFL or IELTS score report"
     ],
-    officialSourceNote: "Verified against KAUST Admissions & Fellowship official portal."
+    officialSourceNote: "Source: KAUST Admissions & Fellowship official portal."
   },
   {
     id: "kfupm-graduate-scholarship",
@@ -1719,8 +1749,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-09-15",
     deadlineStatus: "open",
     daysRemaining: 70,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 0, applicationHttpStatus: 0, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Bachelor's degree in engineering or science; strong mathematical aptitude.",
     languageRequirement: "TOEFL iBT 70 or IELTS 6.0.",
@@ -1735,7 +1766,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Three recommendation letters from university professors",
       "Statement of Purpose"
     ],
-    officialSourceNote: "Verified against KFUPM Deanship of Graduate Studies official website."
+    officialSourceNote: "Source: KFUPM Deanship of Graduate Studies official website."
   },
   {
     id: "world-bank-graduate-scholarship",
@@ -1770,7 +1801,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 170,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "At least 3 years of paid development work experience after bachelor's; unconditional admission to partner master's program.",
     languageRequirement: "Determined by host university (usually IELTS 6.5 or TOEFL 90).",
@@ -1785,7 +1817,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two professional recommendation letters from current/former employers",
       "Bachelor's degree diploma and transcripts"
     ],
-    officialSourceNote: "Verified against World Bank Group Scholarships Program official site."
+    officialSourceNote: "Source: World Bank Group Scholarships Program official site."
   },
   {
     id: "adb-japan-scholarship-program",
@@ -1820,7 +1852,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 130,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "Age under 35; 2 years full-time work experience; admission to an ADB-JSP partner university.",
     languageRequirement: "Proficiency in English as required by host university.",
@@ -1835,14 +1868,14 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two letters of recommendation",
       "Written commitment to return to home country for 2 years"
     ],
-    officialSourceNote: "Verified against Asian Development Bank official site."
+    officialSourceNote: "Source: Asian Development Bank official site."
   },
   {
     id: "ubc-international-major-entrance",
     name: "UBC International Major Entrance Scholarship (IMES)",
     provider: "University of British Columbia",
     destinationCountry: "Canada",
-    officialUrl: "https://you.ubc.ca/financial-planning/scholarships-award-international-students",
+    officialUrl: "https://you.ubc.ca/financial-planning/",
     applicationUrl: "https://you.ubc.ca/applying-ubc",
     eligibleNationalities: ["International students applying directly from secondary school or post-secondary"],
     ineligibleNationalities: ["Canadian citizens and permanent residents"],
@@ -1871,7 +1904,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 99,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Apply for undergraduate admission to UBC by January 15; automatic scholarship assessment.",
     languageRequirement: "UBC English language requirement (IELTS 6.5 or TOEFL 90).",
@@ -1885,7 +1919,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "UBC Personal Profile responses",
       "English language proficiency test results"
     ],
-    officialSourceNote: "Verified against University of British Columbia International Student Guide."
+    officialSourceNote: "Source: University of British Columbia International Student Guide."
   },
   {
     id: "ucl-global-masters-scholarship",
@@ -1920,7 +1954,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 212,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-05",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Must hold an admission offer to a full-time Master's degree at UCL and demonstrate financial need.",
     languageRequirement: "UCL English requirement (IELTS 6.5 to 7.5 depending on faculty).",
@@ -1934,7 +1969,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Statement of household income and financial circumstances",
       "Academic transcripts and references"
     ],
-    officialSourceNote: "Verified against University College London Student Funding Office."
+    officialSourceNote: "Source: University College London Student Funding Office."
   },
   {
     id: "edisu-piemonte-italy",
@@ -1967,8 +2002,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2027-06-15",
     deadlineStatus: "upcoming",
     daysRemaining: 315,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-10",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 0, applicationHttpStatus: 0, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Pre-enrollment and admission offer from an accredited Piedmont higher education institution.",
     languageRequirement: "Determined by host degree programme (English or Italian B2).",
@@ -1982,7 +2018,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Copy of passport and university admission letter",
       "Academic transcript of previous studies"
     ],
-    officialSourceNote: "Verified against EDISU Piemonte official regional decree."
+    officialSourceNote: "Source: EDISU Piemonte official regional decree."
   },
   {
     id: "dsu-toscana-italy",
@@ -1990,7 +2026,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "Azienda Regionale per il Diritto allo Studio Universitario della Toscana",
     destinationCountry: "Italy",
     officialUrl: "https://www.dsu.toscana.it",
-    applicationUrl: "https://www.dsu.toscana.it/web/dsu/servizi-agli-studenti/borse-di-studio",
+    applicationUrl: "https://www.dsu.toscana.it",
     eligibleNationalities: ["International students worldwide", "European Union"],
     degreeLevels: ["bachelors", "masters", "phd"],
     levels: ["Undergraduate (Bachelor's)", "Master's", "PhD / Doctorate", "Postgraduate / Graduate"],
@@ -2016,7 +2052,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 312,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-10",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Admission or enrollment at University of Florence, Pisa, or Siena.",
     languageRequirement: "Degree dependent (English B2 or Italian B2).",
@@ -2030,7 +2067,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Valid passport and university pre-enrollment summary",
       "Educational transcripts"
     ],
-    officialSourceNote: "Verified against Regione Toscana Education Ministry."
+    officialSourceNote: "Source: Regione Toscana Education Ministry."
   },
   {
     id: "ergo-emilia-romagna-italy",
@@ -2038,7 +2075,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "Azienda Regionale per il Diritto agli Studi Superiori (ER.GO)",
     destinationCountry: "Italy",
     officialUrl: "https://www.er-go.it",
-    applicationUrl: "https://www.er-go.it/scadenze-e-modalita-di-partecipazione",
+    applicationUrl: "https://www.er-go.it",
     eligibleNationalities: ["International students worldwide", "European Union", "Developing countries"],
     degreeLevels: ["bachelors", "masters", "phd"],
     levels: ["Undergraduate (Bachelor's)", "Master's", "PhD / Doctorate", "Postgraduate / Graduate"],
@@ -2064,7 +2101,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 310,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-11",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Enrollment in degree program at University of Bologna or Emilia Romagna partner institution.",
     languageRequirement: "Medium of instruction certificate or IELTS/TOEFL as required by faculty.",
@@ -2078,7 +2116,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Passport and Codice Fiscale",
       "Matriculation receipt from University of Bologna or regional partner"
     ],
-    officialSourceNote: "Verified against ER.GO official regional education guidelines."
+    officialSourceNote: "Source: ER.GO official regional education guidelines."
   },
   {
     id: "duo-study-abroad-netherlands",
@@ -2111,7 +2149,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 280,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-12",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Unconditional admission to an accredited foreign university program.",
     languageRequirement: "As required by the foreign host university.",
@@ -2125,7 +2164,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Dutch BSN and DigiD login credentials",
       "Overview of foreign course curriculum"
     ],
-    officialSourceNote: "Verified against Dienst Uitvoering Onderwijs official portal."
+    officialSourceNote: "Source: Dienst Uitvoering Onderwijs official portal."
   },
   {
     id: "vsbfonds-beurs-netherlands",
@@ -2133,7 +2172,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "VSBfonds Netherlands",
     destinationCountry: "Worldwide",
     officialUrl: "https://www.vsbfonds.nl/beurzen",
-    applicationUrl: "https://www.vsbfonds.nl/beurzen/aanvragen",
+    applicationUrl: "https://www.vsbfonds.nl/beurzen",
     eligibleNationalities: ["Netherlands", "Graduates of Dutch universities", "European Union"],
     degreeLevels: ["masters"],
     levels: ["Master's", "Postgraduate / Graduate"],
@@ -2157,7 +2196,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 127,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-10",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "Graduating or graduated from an accredited Dutch university (WO or HBO).",
     languageRequirement: "Proficiency in host country study language.",
@@ -2171,7 +2211,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Study plan and budget overview",
       "Curriculum Vitae and academic transcript"
     ],
-    officialSourceNote: "Verified against Stichting VSBfonds official guidelines."
+    officialSourceNote: "Source: Stichting VSBfonds official guidelines."
   },
   {
     id: "erasmus-plus-mobility",
@@ -2204,7 +2244,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 113,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-08",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Bachelor's degree or enrollment at a participating higher education institution.",
     languageRequirement: "Host institution requirement (English B2 or European national language).",
@@ -2218,7 +2259,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Motivation letter and CV",
       "Proof of nationality and language proficiency"
     ],
-    officialSourceNote: "Verified against European Commission Erasmus+ portal."
+    officialSourceNote: "Source: European Commission Erasmus+ portal."
   },
   {
     id: "chinese-university-program-b",
@@ -2250,8 +2291,10 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-12-01",
     deadlineStatus: "open",
     daysRemaining: 157,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-09",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 0, applicationHttpStatus: 412, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
+    programmeNote: "Variant of the same Chinese Government Scholarship programme as 'Chinese Government Scholarship (CSC)' — same official page (CampusChina).",
     sourceType: "official_government",
     admissionRequirement: "Bachelor degree for Master applicants; Master degree for PhD applicants. Non-Chinese national in good health.",
     languageRequirement: "English taught: English proficiency letter or IELTS 6.0; Chinese taught: HSK 4/5.",
@@ -2266,7 +2309,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two letters of recommendation from professors or associate professors",
       "Foreigner Physical Examination Form and Police Clearance Certificate"
     ],
-    officialSourceNote: "Verified against China Scholarship Council (CSC) portal."
+    officialSourceNote: "Source: China Scholarship Council (CSC) portal."
   },
   {
     id: "turkiye-burslari-undergraduate-graduate",
@@ -2301,7 +2344,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 118,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-06",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
+    programmeNote: "Variant of the same Türkiye Burslari programme as 'Türkiye Burslari Government Scholarship' — same official page.",
     sourceType: "official_government",
     admissionRequirement: "Open to international candidates under 21 for undergrad, under 30 for masters, under 35 for PhD.",
     languageRequirement: "Turkish taught includes 1-year language preparatory; English taught requires TOEFL if specified by university.",
@@ -2316,7 +2361,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Letter of intent and research proposal (for graduate applicants)",
       "National ID or passport"
     ],
-    officialSourceNote: "Verified against Türkiye Bursları official portal."
+    officialSourceNote: "Source: Türkiye Bursları official portal."
   },
   {
     id: "romania-mfa-scholarship",
@@ -2351,7 +2396,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 141,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-04",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Non-EU citizenship and high school / bachelor diploma recognized by Romanian authorities.",
     languageRequirement: "Studies are in Romanian (includes 1-year language preparatory year).",
@@ -2365,7 +2411,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Birth certificate copy and passport copy",
       "Curriculum Vitae and medical certificate"
     ],
-    officialSourceNote: "Verified against Ministry of Foreign Affairs of Romania."
+    officialSourceNote: "Source: Ministry of Foreign Affairs of Romania."
   },
   {
     id: "stipendium-hungaricum-bilateral",
@@ -2398,8 +2444,10 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-11-15",
     deadlineStatus: "open",
     daysRemaining: 82,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-07",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 0, applicationHttpStatus: 200, linkStatus: "links_unverifiable", deadlineConfirmedOnOfficialPage: false },
+    programmeNote: "Variant of the same Stipendium Hungaricum programme as 'Stipendium Hungaricum Scholarship' — same official page.",
     sourceType: "official_government",
     admissionRequirement: "Nomination by sending partner authority (e.g. HEC in Pakistan, Ministry in partner state) and acceptance by Hungarian university.",
     languageRequirement: "IELTS 5.5 - 6.5 or institutional English test.",
@@ -2413,14 +2461,14 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Motivation letter and proof of language proficiency",
       "Medical certificate and passport copy"
     ],
-    officialSourceNote: "Verified against Tempus Public Foundation official portal."
+    officialSourceNote: "Source: Tempus Public Foundation official portal."
   },
   {
     id: "hec-need-based-pakistan",
     name: "HEC Pakistan Need Based Scholarship Program",
     provider: "Higher Education Commission (HEC) of Pakistan",
     destinationCountry: "Pakistan",
-    officialUrl: "https://www.hec.gov.pk/english/scholarships/indigenous/needbased",
+    officialUrl: "https://www.hec.gov.pk",
     applicationUrl: "https://www.hec.gov.pk",
     eligibleNationalities: ["Pakistan"],
     degreeLevels: ["bachelors", "masters"],
@@ -2445,7 +2493,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 187,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-12",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Secured admission at a participating public university in Pakistan and genuine financial need.",
     languageRequirement: "Medium of instruction at host university.",
@@ -2459,7 +2508,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Last 6 months electricity, gas, and telephone bills",
       "Educational certificates and CNIC copies"
     ],
-    officialSourceNote: "Verified against HEC Pakistan official scholarships portal."
+    officialSourceNote: "Source: HEC Pakistan official scholarships portal."
   },
   {
     id: "gks-regional-university-track",
@@ -2467,7 +2516,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "National Institute for International Education (NIIED), Ministry of Education South Korea",
     destinationCountry: "South Korea",
     officialUrl: "https://www.studyinkorea.go.kr",
-    applicationUrl: "https://www.studyinkorea.go.kr/en/scholarship/gks_notice_list.do",
+    applicationUrl: "https://www.studyinkorea.go.kr",
     eligibleNationalities: ["International applicants worldwide", "Pakistan", "Netherlands", "Asia", "Europe", "Africa"],
     degreeLevels: ["bachelors", "masters", "phd"],
     levels: ["Undergraduate (Bachelor's)", "Master's", "PhD / Doctorate", "Postgraduate / Graduate"],
@@ -2493,7 +2542,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "upcoming",
     daysRemaining: 146,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-06",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
+    programmeNote: "Track of the same Global Korea Scholarship programme as 'Global Korea Scholarship' — same official page. Check which track applies to you.",
     sourceType: "official_government",
     admissionRequirement: "Bachelor's degree conferred by August 31; age under 40.",
     languageRequirement: "TOPIK level 3 or higher or English proficiency equivalent.",
@@ -2508,7 +2559,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Two letters of recommendation",
       "Proof of citizenship for applicant and parents"
     ],
-    officialSourceNote: "Verified against NIIED official Global Korea Scholarship guidelines."
+    officialSourceNote: "Source: NIIED official Global Korea Scholarship guidelines."
   },
   {
     id: "daad-epos-bmz-fellowship",
@@ -2543,7 +2594,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 157,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-08",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "At least 2 years of professional work experience; bachelor degree completed no more than 6 years ago.",
     languageRequirement: "English: IELTS 6.0+ or TOEFL 80+; German: DSH 2 / TestDaF 4.",
@@ -2558,54 +2610,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
       "Certificate of employment with at least 2 years proof",
       "Academic transcripts and degree certificates"
     ],
-    officialSourceNote: "Verified against DAAD EPOS official booklet."
-  },
-  {
-    id: "nl-scholarship-netherlands",
-    name: "NL Scholarship (formerly Holland Scholarship)",
-    provider: "Dutch Ministry of Education, Culture and Science & Dutch Research Universities",
-    destinationCountry: "Netherlands",
-    officialUrl: "https://www.studyinnl.org/finances/nl-scholarship",
-    applicationUrl: "https://www.studyinnl.org",
-    eligibleNationalities: ["International students from outside the EEA", "Pakistan", "India", "United States", "Non-EEA"],
-    ineligibleNationalities: ["Netherlands", "European Union"],
-    degreeLevels: ["bachelors", "masters"],
-    levels: ["Undergraduate (Bachelor's)", "Master's", "Postgraduate / Graduate"],
-    fields: ["All fields at participating Dutch research universities (UvA, Leiden, TU Delft, Erasmus, Utrecht)"],
-    minimumCGPA: 3.0,
-    minimumCGPAOriginal: 3.0,
-    cgpaScaleOriginal: "4.0",
-    failedSubjectRule: {
-      policy: "allowed_if_cgpa_met",
-      description: "Open to excellent students from outside the European Economic Area. Backlogs are acceptable if overall GPA meets admission cutoff of the Dutch institution.",
-      officialQuote: "Financed by the Dutch Ministry of Education and Dutch universities for non-EEA students."
-    },
-    fundingType: "partial_funding",
-    benefits: {
-      tuitionCoverage: "€5,000 scholarship grant in the first year of study",
-      stipendMonthly: "Paid directly to assist with first-year living costs",
-      otherPerks: ["Direct fast-track study visa processing in the Netherlands"]
-    },
-    deadline: "2027-02-01",
-    openingDate: "2026-11-01",
-    deadlineStatus: "open",
-    daysRemaining: 99,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-09",
-    sourceType: "official_government",
-    admissionRequirement: "Non-EEA nationality and unconditional or conditional admission to a participating Dutch university.",
-    languageRequirement: "IELTS 6.5 or TOEFL 90 as required by Dutch university.",
-    applicationSteps: [
-      "Apply for a full-time Bachelor's or Master's programme at a participating Dutch university",
-      "Check the university's specific NL Scholarship deadline and instructions",
-      "Submit scholarship motivation statement via university portal"
-    ],
-    requiredDocuments: [
-      "Admission letter from Dutch research university or university of applied sciences",
-      "Curriculum Vitae and motivational letter",
-      "Certified transcripts of previous education"
-    ],
-    officialSourceNote: "Verified against Nuffic / Study in NL official platform."
+    officialSourceNote: "Source: DAAD EPOS official booklet."
   },
   {
     id: "wageningen-excellence-food-science",
@@ -2613,7 +2618,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     provider: "Wageningen University & Research (WUR) / Dutch Ministry",
     destinationCountry: "Netherlands",
     officialUrl: "https://www.wur.nl/en/education-programmes/master/scholarships.htm",
-    applicationUrl: "https://www.wur.nl/en/education-programmes/master/scholarships/excellence-programme.htm",
+    applicationUrl: "https://www.wur.nl/en/education-programmes/master/scholarships.htm",
     eligibleNationalities: ["All Non-EEA International (Pakistan, India, Nigeria, Ghana, Indonesia, Brazil, Egypt, Kenya, Bangladesh, Vietnam, etc.)"],
     ineligibleNationalities: ["Netherlands"],
     degreeLevels: ["masters"],
@@ -2648,7 +2653,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 99,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-09",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Relevant Bachelor of Science in Food Science, Food Technology, Chemistry, Agricultural Sciences, or Biology.",
     languageRequirement: "IELTS 6.5 (min 6.0 in speaking) or TOEFL iBT 92.",
@@ -2702,8 +2708,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     openingDate: "2026-10-01",
     deadlineStatus: "open",
     daysRemaining: 82,
-    verificationStatus: "verified_official",
-    lastVerified: "2026-10-08",
+    verificationStatus: "needs_confirmation",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 404, applicationHttpStatus: 0, linkStatus: "links_broken", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_government",
     admissionRequirement: "Bachelor's degree in Food Science, Food Technology, Food Engineering, Chemistry, or Life Sciences.",
     languageRequirement: "IELTS 6.5 or TOEFL iBT 90.",
@@ -2725,8 +2732,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     name: "Max Planck Research Fellowships in Human Cognitive Science & Psychology",
     provider: "Max Planck Society / International Max Planck Research School (IMPRS)",
     destinationCountry: "Germany",
-    officialUrl: "https://www.cbs.mpg.de/en/imprs-neurocom",
-    applicationUrl: "https://www.cbs.mpg.de/imprs-neurocom/application",
+    officialUrl: "https://www.cbs.mpg.de/",
+    applicationUrl: "https://www.cbs.mpg.de/",
     eligibleNationalities: ["Open to international students worldwide (all nationalities)"],
     degreeLevels: ["masters", "phd"],
     levels: ["Master's", "PhD"],
@@ -2759,7 +2766,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 51,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-07",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_foundation",
     admissionRequirement: "Undergraduate or postgraduate degree in Psychology, Cognitive Science, Neuroscience, Biology, or Computer Science.",
     languageRequirement: "Fluent written and spoken English; German language not required for scientific research.",
@@ -2781,7 +2789,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     name: "Karolinska Institutet Global Masters in Psychology & Cognitive Neuroscience",
     provider: "Karolinska Institutet & Swedish Institute",
     destinationCountry: "Sweden",
-    officialUrl: "https://ki.se/en/education/global-masters-scholarships",
+    officialUrl: "https://ki.se/en/education/scholarships",
     applicationUrl: "https://www.universityadmissions.se",
     eligibleNationalities: ["International fee-paying students from non-EU/EEA countries (Pakistan, India, USA, Nigeria, etc.)"],
     ineligibleNationalities: ["Sweden", "EU/EEA"],
@@ -2815,7 +2823,8 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 82,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-09",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
     sourceType: "official_university",
     admissionRequirement: "Bachelor's degree in Psychology, Cognitive Science, Neuroscience, Medicine, or Health Sciences (min 180 ECTS equivalent).",
     languageRequirement: "English 6 / English B (IELTS 6.5 with no band below 5.5, or TOEFL 90).",
@@ -2837,7 +2846,7 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     name: "Singapore International Graduate Award (SINGA) in Computer Science & AI",
     provider: "A*STAR (Agency for Science, Technology and Research), NTU, NUS & SUTD",
     destinationCountry: "Singapore",
-    officialUrl: "https://www.a-star.edu.sg/Scholarships/for-graduate-studies/singapore-international-graduate-award-singa",
+    officialUrl: "https://www.a-star.edu.sg/Scholarships",
     applicationUrl: "https://www.a-star.edu.sg/Scholarships",
     eligibleNationalities: ["Open to international students from all countries worldwide"],
     degreeLevels: ["phd"],
@@ -2873,7 +2882,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 68,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-09",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
+    programmeNote: "Track of the same SINGA programme as 'Singapore International Graduate Award (SINGA)' — same official page.",
     sourceType: "official_government",
     admissionRequirement: "Bachelor's or Master's degree in Computer Science, Software Engineering, IT, Mathematics, or Engineering.",
     languageRequirement: "Good spoken and written English skills (IELTS / TOEFL not mandatory but highly advantageous).",
@@ -2930,7 +2941,9 @@ export const VERIFIED_SCHOLARSHIPS: Scholarship[] = [
     deadlineStatus: "open",
     daysRemaining: 51,
     verificationStatus: "verified_official",
-    lastVerified: "2026-10-09",
+    lastVerified: "2026-11-04",
+    linkCheck: { checkedOn: "2026-11-04", officialHttpStatus: 200, applicationHttpStatus: 200, linkStatus: "links_ok", deadlineConfirmedOnOfficialPage: false },
+    programmeNote: "Track of the same ETH Zurich Excellence Scholarship programme as 'ETH Zurich Excellence Scholarship' — same official page.",
     sourceType: "official_university",
     admissionRequirement: "Bachelor's degree in Computer Science, Electrical Engineering, Mechanical Engineering, or Mathematics with distinction.",
     languageRequirement: "C1 English level (IELTS 7.0+ or TOEFL 100+).",

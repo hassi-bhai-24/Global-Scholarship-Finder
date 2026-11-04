@@ -1,21 +1,58 @@
 import React, { useState } from 'react';
-import { ShieldCheck, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, RefreshCw, ExternalLink, CheckCircle2, XCircle, HelpCircle } from 'lucide-react';
 import { OFFICIAL_SOURCES, VERIFIED_SCHOLARSHIPS } from '../data/scholarships';
 import { VerificationSourceInfo } from '../types/scholarship';
+
+interface AuditResult {
+  id: string;
+  reachable: boolean;
+  httpStatus: number | null;
+  error: string | null;
+  checkedAt: string;
+}
 
 export const AdminConsoleView: React.FC = () => {
   const [sources] = useState<VerificationSourceInfo[]>(OFFICIAL_SOURCES);
   const [isAuditing, setIsAuditing] = useState(false);
-  const [auditDone, setAuditDone] = useState(false);
+  const [auditResults, setAuditResults] = useState<AuditResult[] | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
+  const [auditCheckedAt, setAuditCheckedAt] = useState<string | null>(null);
+  // Re-checks are manual and visible: the date of the last completed audit is
+  // kept in localStorage so it survives reloads. Run Audit Portals again
+  // regularly (at least monthly) to refresh it; nothing re-checks itself.
+  const [lastAuditAt, setLastAuditAt] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('scholarship-portal-last-audit');
+    } catch {
+      return null;
+    }
+  });
 
-  const handleRunAudit = () => {
+  const handleRunAudit = async () => {
     setIsAuditing(true);
-    setAuditDone(false);
-    setTimeout(() => {
+    setAuditError(null);
+    try {
+      const res = await fetch('/api/scholarships/audit-sources');
+      if (!res.ok) throw new Error(`Audit request failed (${res.status})`);
+      const data = await res.json();
+      setAuditResults(data.results as AuditResult[]);
+      setAuditCheckedAt(data.checkedAt as string);
+      setLastAuditAt(data.checkedAt as string);
+      try {
+        localStorage.setItem('scholarship-portal-last-audit', data.checkedAt as string);
+      } catch {
+        // Storage unavailable; the in-memory result above is still shown.
+      }
+    } catch (err) {
+      setAuditError(err instanceof Error ? err.message : 'Audit request failed.');
+      setAuditResults(null);
+    } finally {
       setIsAuditing(false);
-      setAuditDone(true);
-    }, 1500);
+    }
   };
+
+  const resultFor = (id: string) => auditResults?.find((r) => r.id === id);
+  const reachableCount = auditResults ? auditResults.filter((r) => r.reachable).length : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in text-left">
@@ -23,8 +60,13 @@ export const AdminConsoleView: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="font-display font-black text-2xl sm:text-3xl text-white">
-            Verified Sources
+            Sources
           </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            {lastAuditAt
+              ? `Last portal audit: ${lastAuditAt}. Re-checks are manual — run Audit Portals again at least monthly; a portal that does not respond is not marked verified.`
+              : 'No portal audit has been run yet in this browser. Run Audit Portals to check every portal now; re-check at least monthly.'}
+          </p>
         </div>
 
         <button
@@ -37,10 +79,21 @@ export const AdminConsoleView: React.FC = () => {
         </button>
       </div>
 
-      {auditDone && (
-        <div className="p-3.5 mb-6 rounded-xl bg-emerald-950/40 border border-emerald-800/80 text-emerald-300 text-xs flex items-center gap-2">
+      {auditError && (
+        <div className="p-3.5 mb-6 rounded-xl bg-rose-950/40 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+          <XCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <span>Audit failed: {auditError} No source was marked verified by this run.</span>
+        </div>
+      )}
+
+      {auditResults && !auditError && (
+        <div className="p-3.5 mb-6 rounded-xl bg-slate-900 border border-slate-800 text-xs flex items-center gap-2 text-slate-300">
           <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-          <span>Audit complete: All official sources verified active.</span>
+          <span>
+            Audit checked {auditResults.length} portals on {auditCheckedAt}: {reachableCount} reachable,{' '}
+            {auditResults.length - (reachableCount ?? 0)} not reachable. A portal that did not respond was
+            not marked verified — check it on the official page before relying on it.
+          </span>
         </div>
       )}
 
@@ -57,13 +110,15 @@ export const AdminConsoleView: React.FC = () => {
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-[11px] text-slate-400 mb-1">Primary Domains</div>
-          <div className="font-display font-black text-xl text-emerald-400 font-mono-data">100%</div>
+          <div className="text-[11px] text-slate-400 mb-1">Portals Reachable (last audit)</div>
+          <div className="font-display font-black text-xl text-white font-mono-data">
+            {reachableCount === null ? 'Not yet audited' : `${reachableCount} / ${auditResults?.length ?? 0}`}
+          </div>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-[11px] text-slate-400 mb-1">Fee Protection</div>
-          <div className="font-display font-black text-xl text-teal-400 font-mono-data">Verified Free</div>
+          <div className="text-[11px] text-slate-400 mb-1">Application Fees</div>
+          <div className="font-display font-black text-xl text-teal-400 font-mono-data">Check official page</div>
         </div>
       </div>
 
@@ -96,10 +151,31 @@ export const AdminConsoleView: React.FC = () => {
                     </a>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Verified</span>
-                    </span>
+                    {(() => {
+                      const result = resultFor(s.id);
+                      if (!result) {
+                        return (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+                            <HelpCircle className="w-3.5 h-3.5" />
+                            <span>Not yet checked</span>
+                          </span>
+                        );
+                      }
+                      if (result.reachable) {
+                        return (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Reachable (HTTP {result.httpStatus})</span>
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400">
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Not reachable{result.httpStatus ? ` (HTTP ${result.httpStatus})` : ''}{result.error ? ` — ${result.error}` : ''}</span>
+                        </span>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}

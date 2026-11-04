@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookmarkCheck, Clock, Trash2, Edit3, ExternalLink, Calendar, Check, AlertCircle } from 'lucide-react';
+import { BookmarkCheck, Clock, Trash2 } from 'lucide-react';
 import { ApplicationStatus, ApplicationTrackerItem, Scholarship } from '../types/scholarship';
 
 interface ApplicationTrackerViewProps {
@@ -18,22 +18,9 @@ export const ApplicationTrackerView: React.FC<ApplicationTrackerViewProps> = ({
   onOpenDetails
 }) => {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
-  const [tempNotes, setTempNotes] = useState<string>('');
-
   const filteredItems = selectedFilter === 'all'
     ? items
     : items.filter(i => i.status === selectedFilter);
-
-  const handleStartEditNotes = (item: ApplicationTrackerItem) => {
-    setEditingNotesId(item.scholarshipId);
-    setTempNotes(item.notes);
-  };
-
-  const handleSaveNotes = (id: string) => {
-    onUpdateNotes(id, tempNotes);
-    setEditingNotesId(null);
-  };
 
   const getStatusBadge = (status: ApplicationStatus) => {
     switch (status) {
@@ -70,7 +57,8 @@ export const ApplicationTrackerView: React.FC<ApplicationTrackerViewProps> = ({
             { id: 'researching', label: 'Researching' },
             { id: 'applying', label: 'Applying' },
             { id: 'applied', label: 'Applied' },
-            { id: 'accepted', label: 'Accepted' }
+            { id: 'accepted', label: 'Accepted' },
+            { id: 'closed', label: 'Closed' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -101,7 +89,6 @@ export const ApplicationTrackerView: React.FC<ApplicationTrackerViewProps> = ({
         <div className="space-y-4">
           {filteredItems.map(item => {
             const badge = getStatusBadge(item.status);
-            const isEditingNotes = editingNotesId === item.scholarshipId;
 
             return (
               <div
@@ -129,10 +116,10 @@ export const ApplicationTrackerView: React.FC<ApplicationTrackerViewProps> = ({
                   <div className="flex items-center gap-4 text-xs text-slate-400">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{item.scholarship.deadline}</span>
+                      <span>{item.scholarship.deadlineStatus === 'closed' ? `Closed (deadline ${item.scholarship.deadline})` : item.scholarship.deadline}</span>
                     </div>
 
-                    {item.notes && !isEditingNotes && (
+                    {item.notes && (
                       <span className="text-slate-300 truncate max-w-xs font-mono-data">
                         "{item.notes}"
                       </span>

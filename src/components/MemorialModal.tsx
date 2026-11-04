@@ -33,7 +33,7 @@ export const MemorialModal: React.FC<MemorialModalProps> = ({ isOpen, onClose })
               In Memory of Laiba
             </h3>
             <p className="text-xs text-emerald-400 font-medium">
-              Verified Funding. Protected Students.
+              Protected Students.
             </p>
           </div>
         </div>
@@ -43,10 +43,10 @@ export const MemorialModal: React.FC<MemorialModalProps> = ({ isOpen, onClose })
             This platform is dedicated in loving memory of <strong className="text-white">Laiba</strong>.
           </p>
           <p>
-            Her journey inspires our mission: protecting students from deceptive agents and fraudulent claims by verifying authentic international opportunities directly from official ministries, embassies, and universities.
+            Her story inspires our mission: protecting students from deceptive agents and fraudulent claims by checking every opportunity against official ministries, embassies, and universities before anyone pays or applies.
           </p>
           <p>
-            No student should ever be exploited while pursuing higher education. Every opportunity indexed here is 100% verified and free to apply.
+            No student should ever be exploited while pursuing higher education. Each listing shows its source and the date it was last checked, so you can verify it yourself on the official page. A listing here is never a guarantee, and it is never proof that an offer you receive somewhere else is genuine.
           </p>
         </div>
 

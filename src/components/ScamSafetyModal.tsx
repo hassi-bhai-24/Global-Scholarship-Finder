@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { X, ShieldCheck, AlertTriangle, CheckCircle2, Flag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { saveScamReportLocally } from '../services/storage';
+import { X, ShieldCheck, CheckCircle2, Flag } from 'lucide-react';
 
 interface ScamSafetyModalProps {
   isOpen: boolean;
@@ -17,17 +18,28 @@ export const ScamSafetyModal: React.FC<ScamSafetyModalProps> = ({
   const [reportDetails, setReportDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  // F27: follow defaultTab on every open, not just the first mount.
+  useEffect(() => {
+    if (isOpen) {
+      setTab(defaultTab);
+      setSubmitted(false);
+    }
+  }, [isOpen, defaultTab]);
+
   if (!isOpen) return null;
 
   const handleSubmitReport = (e: React.FormEvent) => {
     e.preventDefault();
+    // Stored ONLY on this device (localStorage). Nothing is sent to any
+    // team or server — this site has no report inbox. See the copy below.
+    saveScamReportLocally({ urlOrName: reportUrl.trim(), details: reportDetails.trim() });
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
       setReportUrl('');
       setReportDetails('');
       onClose();
-    }, 2000);
+    }, 4000);
   };
 
   return (
@@ -83,7 +95,7 @@ export const ScamSafetyModal: React.FC<ScamSafetyModalProps> = ({
             <div className="space-y-3 text-xs text-slate-300">
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Legitimate scholarships never charge application or registration fees.</span>
+                <span>Be very cautious of any fee demanded by an agent. Always check the fee on the official page, and never pay an agent who guarantees selection. Some legitimate programmes and universities do charge application fees — the warning sign is a fee demanded by an agent, not by the official page.</span>
               </div>
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -105,13 +117,30 @@ export const ScamSafetyModal: React.FC<ScamSafetyModalProps> = ({
               Report Fraudulent Portal or Agent
             </h3>
             <p className="text-xs text-slate-400 mb-4">
-              Help us protect the student community by reporting fraudulent activity.
+              Keep a private note of what happened, and report it to the
+              official channels below. This form does not send your report
+              anywhere: it is saved only in this browser, on this device.
             </p>
+            <div className="mb-4 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 space-y-2">
+              <p className="font-semibold text-white">Official reporting channels</p>
+              <p>
+                Cybercrime complaints (Pakistan):{' '}
+                <a href="https://www.nccia.gov.pk/" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">
+                  National Cyber Crime Investigation Agency (NCCIA)
+                </a>
+                . If money was paid, also contact your local police.
+              </p>
+              <p>
+                Tell the real programme too: contact it through its official
+                page (never through the suspicious link) so it can warn other
+                applicants.
+              </p>
+            </div>
 
             {submitted ? (
               <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Report received. Our verification team will investigate immediately.</span>
+                <span>Saved only on this device. Nothing was sent to anyone — this site has no verification team or report inbox. Please also report it through the official channels above.</span>
               </div>
             ) : (
               <form onSubmit={handleSubmitReport} className="space-y-3 text-xs">
