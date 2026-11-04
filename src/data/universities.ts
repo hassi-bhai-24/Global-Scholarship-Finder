@@ -1,5 +1,3 @@
-import rawUniversities from './universities.json';
-
 export interface UniversityItem {
   name: string;
   country: string;
@@ -7,10 +5,32 @@ export interface UniversityItem {
   aliases?: string[];
 }
 
-// Global directory of 4,500+ verified universities from 200+ countries
-export const UNIVERSITIES: UniversityItem[] = rawUniversities as UniversityItem[];
+// The 4,500+ entry directory (universities.json, ~452 kB) is loaded lazily
+// via dynamic import so it lands in its own chunk instead of the main
+// bundle (F20). Until it loads, searches return an empty list; callers
+// trigger the load with ensureUniversitiesLoaded() and re-render when it
+// resolves.
+let universityCache: UniversityItem[] | null = null;
+let universityLoadPromise: Promise<void> | null = null;
+
+export function ensureUniversitiesLoaded(): Promise<void> {
+  if (universityCache) return Promise.resolve();
+  if (!universityLoadPromise) {
+    universityLoadPromise = import('./universities.json').then((module) => {
+      universityCache = (module.default as UniversityItem[]) || [];
+    }).catch(() => {
+      universityCache = [];
+    });
+  }
+  return universityLoadPromise;
+}
+
+export function getUniversities(): UniversityItem[] {
+  return universityCache ?? [];
+}
 
 export function searchUniversities(query: string, country?: string): UniversityItem[] {
+  const UNIVERSITIES = getUniversities();
   if (!query || query.trim() === '') {
     if (country) {
       const countryMatches = UNIVERSITIES.filter(u => u.country.toLowerCase() === country.toLowerCase());

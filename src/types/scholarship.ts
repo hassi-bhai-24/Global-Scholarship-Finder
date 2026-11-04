@@ -89,6 +89,21 @@ export interface Scholarship {
   daysRemaining?: number;
   verificationStatus: 'verified_official' | 'verified_recently' | 'needs_confirmation' | 'expired_closed';
   lastVerified: string;
+  // Result of the last link check performed on 2026-11-04 (HTTP status of
+  // each URL as seen from the checking machine). This records a link check
+  // only: it does NOT confirm the deadline, CGPA cutoff or benefits, which
+  // must still be confirmed on the official page before applying.
+  linkCheck?: {
+    checkedOn: string;
+    officialHttpStatus: number | null;
+    applicationHttpStatus: number | null;
+    linkStatus: 'links_ok' | 'links_broken' | 'links_unverifiable';
+    deadlineConfirmedOnOfficialPage: boolean;
+  };
+  // Set when this entry is a track/variant of the same programme as another
+  // entry sharing the same official page, so it is not read as a separate
+  // scholarship.
+  programmeNote?: string;
   sourceType: 'official_government' | 'official_university' | 'official_foundation' | 'verified_portal';
   admissionRequirement: string;
   languageRequirement: string;
@@ -108,7 +123,7 @@ export type MatchCategory =
 export interface MatchResult {
   scholarship: Scholarship;
   category: MatchCategory;
-  confidenceScore: number; // 0 - 100 percentage based on verified factors
+  matchScore: number; // Internal rough match points for ranking/categories only. NOT a probability; never displayed as a percentage.
   whyYouMatch: string[];
   whatCouldDisqualify: string[];
   whatToConfirm: string[];

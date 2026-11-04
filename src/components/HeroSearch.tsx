@@ -1,18 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, ChevronDown, Check, Building, Globe, BookOpen, 
-  GraduationCap, SlidersHorizontal, Award, ChevronUp
+  GraduationCap, SlidersHorizontal, ChevronUp
 } from 'lucide-react';
 import { COUNTRIES } from '../data/countries';
-import { searchUniversities } from '../data/universities';
+import { searchUniversities, ensureUniversitiesLoaded } from '../data/universities';
 import { searchSubjects } from '../data/subjects';
 import { 
   ADAPTIVE_STUDY_LEVELS, 
   EDUCATION_STATUS_BY_LEVEL, 
   PAKISTANI_BOARDS, 
   BOARD_CURRICULA, 
-  TARGET_DESTINATIONS,
-  normalizeLevelToCanonical 
+  TARGET_DESTINATIONS
 } from '../data/studyLevels';
 import { CGPAScale, StudentProfile, PreUniResult } from '../types/scholarship';
 
@@ -23,13 +22,13 @@ interface HeroSearchProps {
 
 export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile }) => {
   // 1. FIELD 1: Nationality / Country
-  const [selectedCountry, setSelectedCountry] = useState<string>(initialProfile?.country || 'Pakistan');
+  const [selectedCountry, setSelectedCountry] = useState<string>(initialProfile?.country || '');
   const [countryQuery, setCountryQuery] = useState('');
   const [isCountryOpen, setIsCountryOpen] = useState(false);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
 
   // 2. FIELD 2: Study Level (controls the rest of the form)
-  const defaultStudyLevel = initialProfile?.studyLevel || "Undergraduate / Bachelor's (after Intermediate / A-Levels / 12th grade)";
+  const defaultStudyLevel = initialProfile?.studyLevel || "";
   const [selectedStudyLevel, setSelectedStudyLevel] = useState<string>(defaultStudyLevel);
   const [isStudyLevelOpen, setIsStudyLevelOpen] = useState(false);
   const studyLevelDropdownRef = useRef<HTMLDivElement>(null);
@@ -38,10 +37,6 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
   const isUndergrad = selectedStudyLevel.includes("Undergraduate") || 
                       selectedStudyLevel.includes("Intermediate") || 
                       selectedStudyLevel.includes("12th");
-
-  const isPostgraduate = selectedStudyLevel.includes("Master") || 
-                         selectedStudyLevel.includes("PhD") || 
-                         selectedStudyLevel.includes("Postdoctoral");
 
   // 3. FIELD 3: Current Education Status
   const getStatusCategory = (level: string) => {
@@ -77,13 +72,13 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
   const [selectedUniversity, setSelectedUniversity] = useState<string>(() => {
     if (initialProfile?.university) return initialProfile.university;
     if (isUndergrad && !isTransferring) return "No university experience";
-    return 'The Islamia University of Bahawalpur (IUB BWP)';
+    return '';
   });
 
   const [uniQuery, setUniQuery] = useState<string>(() => {
     if (initialProfile?.university) return initialProfile.university;
     if (isUndergrad && !isTransferring) return "No university experience";
-    return 'The Islamia University of Bahawalpur (IUB BWP)';
+    return '';
   });
   const [isUniOpen, setIsUniOpen] = useState(false);
   const uniDropdownRef = useRef<HTMLDivElement>(null);
@@ -96,53 +91,53 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
       setShowCustomUniInput(false);
     } else {
       if (selectedUniversity === "No university experience") {
-        const defaultUni = selectedCountry === 'Pakistan' 
-          ? 'The Islamia University of Bahawalpur (IUB BWP)' 
-          : 'National University';
-        setSelectedUniversity(defaultUni);
-        setUniQuery(defaultUni);
+        setSelectedUniversity('');
+        setUniQuery('');
       }
       setShowCustomUniInput(true);
     }
   }, [selectedStudyLevel, isTransferring]);
 
-  // 4. FIELD 4: Field of Study / Major
+  // 5. FIELD 5: Field of Study / Major
   const [selectedField, setSelectedField] = useState<string>(
-    initialProfile?.field || 'Computer Science'
+    initialProfile?.field || ''
   );
   const [fieldQuery, setFieldQuery] = useState('');
   const [isFieldOpen, setIsFieldOpen] = useState(false);
   const fieldDropdownRef = useRef<HTMLDivElement>(null);
 
-  // 5. FIELD 5: Academic Result (Pre-University vs University)
+  // 7. FIELD 7: Academic Result (Pre-University vs University)
   // Pre-University specific states
   const [boardCurriculum, setBoardCurriculum] = useState<string>(
-    initialProfile?.preUniResult?.boardCurriculum || 'Pakistani Board (BISE / Federal)'
+    initialProfile?.preUniResult?.boardCurriculum || ''
   );
   const [specificBoard, setSpecificBoard] = useState<string>(
-    initialProfile?.preUniResult?.specificBoard || 'BISE Lahore'
+    initialProfile?.preUniResult?.specificBoard || ''
   );
   const [preUniPercentage, setPreUniPercentage] = useState<string>(
-    initialProfile?.preUniResult?.percentage ? String(initialProfile.preUniResult.percentage) : '85'
+    initialProfile?.preUniResult?.percentage !== undefined ? String(initialProfile.preUniResult.percentage) : ''
   );
   const [obtainedMarks, setObtainedMarks] = useState<string>(
-    initialProfile?.preUniResult?.obtainedMarks ? String(initialProfile.preUniResult.obtainedMarks) : '935'
+    initialProfile?.preUniResult?.obtainedMarks !== undefined ? String(initialProfile.preUniResult.obtainedMarks) : ''
   );
   const [totalMarks, setTotalMarks] = useState<string>(
-    initialProfile?.preUniResult?.totalMarks ? String(initialProfile.preUniResult.totalMarks) : '1100'
+    initialProfile?.preUniResult?.totalMarks !== undefined ? String(initialProfile.preUniResult.totalMarks) : ''
   );
   const [resultMode, setResultMode] = useState<'percentage' | 'marks'>('percentage');
   const [aLevelGrades, setALevelGrades] = useState<string>(
-    initialProfile?.preUniResult?.grades || '3 A*s'
+    initialProfile?.preUniResult?.grades || ''
   );
   const [ibPoints, setIbPoints] = useState<string>(
-    initialProfile?.preUniResult?.ibPoints ? String(initialProfile.preUniResult.ibPoints) : '38'
+    initialProfile?.preUniResult?.ibPoints !== undefined ? String(initialProfile.preUniResult.ibPoints) : ''
   );
   const [highSchoolGpa, setHighSchoolGpa] = useState<string>(
-    initialProfile?.preUniResult?.highSchoolGpa ? String(initialProfile.preUniResult.highSchoolGpa) : '3.8'
+    initialProfile?.preUniResult?.highSchoolGpa !== undefined ? String(initialProfile.preUniResult.highSchoolGpa) : ''
   );
   const [hasFailedPapersPreUni, setHasFailedPapersPreUni] = useState<boolean>(
     initialProfile?.preUniResult?.hasFailedPapers || false
+  );
+  const [failedPapersCount, setFailedPapersCount] = useState<string>(
+    initialProfile?.failedSubjects ? String(initialProfile.failedSubjects) : '1'
   );
   const [entranceTest, setEntranceTest] = useState<string>(
     initialProfile?.preUniResult?.entranceTest || 'None / Not taken'
@@ -161,7 +156,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
   }, [obtainedMarks, totalMarks, resultMode]);
 
   // University CGPA states (with ample width to avoid clipping full value e.g. 3.65)
-  const [cgpa, setCgpa] = useState<string>(initialProfile?.cgpa ? String(initialProfile.cgpa) : '3.65');
+  const [cgpa, setCgpa] = useState<string>(initialProfile?.cgpa ? String(initialProfile.cgpa) : '');
   const [cgpaScale, setCgpaScale] = useState<CGPAScale>(initialProfile?.cgpaScale || '4.0');
   const [failedSubjects, setFailedSubjects] = useState<string>(
     initialProfile?.failedSubjects !== undefined ? String(initialProfile.failedSubjects) : '0'
@@ -192,6 +187,16 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
   // Live Grounding toggle (default true)
   const [enableLiveSearch, setEnableLiveSearch] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Load the university directory lazily (F20); re-render once it arrives.
+  const [, setUniversitiesReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    ensureUniversitiesLoaded().then(() => {
+      if (!cancelled) setUniversitiesReady(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -254,43 +259,59 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
     }
 
     // 4. Validate Academic Results
-    let finalCgpa = 3.65;
+    let finalCgpa = 0;
     let finalCgpaScale: CGPAScale = '4.0';
     let finalFails = 0;
     let preUniObj: PreUniResult | undefined = undefined;
 
     if (isPreUni) {
-      let pct = parseFloat(preUniPercentage);
-      if (isNaN(pct) || pct < 0 || pct > 100) {
-        pct = 85;
-      }
-      
-      // Normalize board percentage or grades to equivalent 4.0 scale
-      if (boardCurriculum.includes('Cambridge')) {
-        finalCgpa = aLevelGrades.includes('A*') ? 3.95 : aLevelGrades.includes('A') ? 3.75 : 3.4;
-      } else if (boardCurriculum.includes('IB')) {
-        const pts = parseFloat(ibPoints) || 38;
-        finalCgpa = Math.min(4.0, (pts / 45) * 4.2);
-      } else if (boardCurriculum.includes('American')) {
-        finalCgpa = parseFloat(highSchoolGpa) || 3.8;
+      // No CGPA conversion is invented here: A-Level/IB/percentage mappings
+      // to a 4.0 scale are unsourced, so pre-university applicants are
+      // evaluated on the board result recorded in preUniObj below, and
+      // finalCgpa stays 0 (no university CGPA exists). Invalid input is an
+      // error, never silently replaced with a default score.
+      if (resultMode === 'percentage') {
+        const pct = parseFloat(preUniPercentage);
+        if (preUniPercentage.trim() === '' || isNaN(pct) || pct < 0 || pct > 100) {
+          setValidationError('Please enter a valid board percentage (0–100).');
+          return;
+        }
+        preUniObj = {
+          boardCurriculum: boardCurriculum || undefined,
+          specificBoard: boardCurriculum.includes('Pakistani') ? (specificBoard || undefined) : undefined,
+          resultMode,
+          percentage: pct,
+          obtainedMarks: parseFloat(obtainedMarks) || undefined,
+          totalMarks: parseFloat(totalMarks) || undefined,
+          grades: boardCurriculum.includes('Cambridge') ? (aLevelGrades || undefined) : undefined,
+          ibPoints: boardCurriculum.includes('IB') ? (parseFloat(ibPoints) || undefined) : undefined,
+          highSchoolGpa: boardCurriculum.includes('American') ? (parseFloat(highSchoolGpa) || undefined) : undefined,
+          hasFailedPapers: hasFailedPapersPreUni,
+          entranceTest: entranceTest !== 'None / Not taken' ? entranceTest : undefined
+        };
       } else {
-        finalCgpa = Math.min(4.0, Math.max(1.0, (pct / 100) * 4.0));
+        const obt = parseFloat(obtainedMarks);
+        const tot = parseFloat(totalMarks);
+        if (isNaN(obt) || isNaN(tot) || tot <= 0 || obt < 0 || obt > tot) {
+          setValidationError('Please enter valid obtained and total marks.');
+          return;
+        }
+        preUniObj = {
+          boardCurriculum: boardCurriculum || undefined,
+          specificBoard: boardCurriculum.includes('Pakistani') ? (specificBoard || undefined) : undefined,
+          resultMode,
+          percentage: (obt / tot) * 100,
+          obtainedMarks: obt,
+          totalMarks: tot,
+          grades: boardCurriculum.includes('Cambridge') ? (aLevelGrades || undefined) : undefined,
+          ibPoints: boardCurriculum.includes('IB') ? (parseFloat(ibPoints) || undefined) : undefined,
+          highSchoolGpa: boardCurriculum.includes('American') ? (parseFloat(highSchoolGpa) || undefined) : undefined,
+          hasFailedPapers: hasFailedPapersPreUni,
+          entranceTest: entranceTest !== 'None / Not taken' ? entranceTest : undefined
+        };
       }
 
-      finalFails = hasFailedPapersPreUni ? 1 : 0;
-      preUniObj = {
-        boardCurriculum,
-        specificBoard: boardCurriculum.includes('Pakistani') ? specificBoard : undefined,
-        resultMode,
-        percentage: pct,
-        obtainedMarks: parseFloat(obtainedMarks) || undefined,
-        totalMarks: parseFloat(totalMarks) || undefined,
-        grades: boardCurriculum.includes('Cambridge') ? aLevelGrades : undefined,
-        ibPoints: boardCurriculum.includes('IB') ? parseFloat(ibPoints) : undefined,
-        highSchoolGpa: boardCurriculum.includes('American') ? parseFloat(highSchoolGpa) : undefined,
-        hasFailedPapers: hasFailedPapersPreUni,
-        entranceTest: entranceTest !== 'None / Not taken' ? entranceTest : undefined
-      };
+      finalFails = hasFailedPapersPreUni ? Math.max(1, parseInt(failedPapersCount, 10) || 1) : 0;
     } else {
       const parsedCgpa = parseFloat(cgpa);
       if (isNaN(parsedCgpa) || parsedCgpa < 0) {
@@ -387,7 +408,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <span className="text-lg leading-none">{currentCountryItem.flag}</span>
-                    <span className="text-sm font-medium truncate">{selectedCountry}</span>
+                    <span className="text-sm font-medium truncate">{selectedCountry || 'Select your country'}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
                 </button>
@@ -448,7 +469,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                   <div className="flex items-center gap-2 truncate">
                     <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="text-xs sm:text-sm font-semibold truncate text-white">
-                      {selectedStudyLevel}
+                      {selectedStudyLevel || 'Select study level'}
                     </span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1.5" />
@@ -538,7 +559,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
               <div className="relative" ref={uniDropdownRef}>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    {requiresUni ? 'Current / Graduated University' : 'University (Optional)'}
+                    {requiresUni ? '4. Current / Graduated University' : '4. University (Optional)'}
                   </label>
                   {requiresUni ? (
                     <span className="text-[10px] text-emerald-400 font-bold">*</span>
@@ -616,13 +637,13 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
               </div>
             </div>
 
-            {/* ROW 3: Field 4 (Field of Study) & Field 6 (Target Destination) */}
+            {/* ROW 3: Field 5 (Field of Study) & Field 6 (Target Destination) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
-              {/* 4) Field of Study / Major */}
+              {/* 5) Field of Study / Major */}
               <div className="relative" ref={fieldDropdownRef}>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>4. Field / Major</span>
+                  <span>5. Field / Major</span>
                   <span className="text-[10px] text-slate-500">All fields open</span>
                 </label>
 
@@ -778,11 +799,11 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
               })}
             </div>
 
-            {/* ROW 4: Field 5 (Academic Result) - Adapts completely based on level */}
+            {/* ROW 4: Field 7 (Academic Result) - Adapts completely based on level */}
             <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/90 space-y-3.5">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                  5. Academic Result {isUndergrad && !isTransferring ? '(School / Board)' : '(CGPA & Backlogs)'}
+                  7. Academic Result {isUndergrad && !isTransferring ? '(School / Board)' : '(CGPA & Backlogs)'}
                 </label>
                 <span className="text-[10px] text-slate-400 font-mono-data">
                   {isUndergrad && !isTransferring ? 'No CGPA Required' : 'University Grading'}
@@ -959,6 +980,19 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
                       </div>
                     </div>
 
+                    {hasFailedPapersPreUni && (
+                      <label className="flex items-center gap-2 text-xs text-slate-300">
+                        <span>How many?</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={failedPapersCount}
+                          onChange={(e) => setFailedPapersCount(e.target.value)}
+                          className="w-16 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-emerald-500"
+                        />
+                      </label>
+                    )}
+
                     {/* Entrance Test Optional */}
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                       <span className="text-slate-400 text-[11px]">Test (Optional):</span>
@@ -1117,6 +1151,18 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
               </div>
             )}
 
+            {/* Live discovery toggle (F18): the enableLiveSearch flag previously
+                had no control and was always on. */}
+            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableLiveSearch}
+                onChange={(e) => setEnableLiveSearch(e.target.checked)}
+                className="w-4 h-4 accent-emerald-500 cursor-pointer"
+              />
+              <span>Include live discovery (needs a key configured on the server; without one, only the local catalog is searched)</span>
+            </label>
+
             {/* Search Button & Source Note */}
             <div className="pt-3 border-t border-slate-800/80 flex flex-col items-center justify-center gap-2.5">
               <button
@@ -1128,7 +1174,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, initialProfile
               </button>
 
               <p className="text-xs text-slate-400">
-                Official university &amp; government sources only.
+                Listings link to official pages. Check each one on the official page before applying or paying anything.
               </p>
             </div>
           </form>

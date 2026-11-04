@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Sparkles, Filter, RefreshCw, SlidersHorizontal, Check, Building, BookOpen, GraduationCap } from 'lucide-react';
+import { Edit2, SlidersHorizontal, Check, BookOpen, GraduationCap } from 'lucide-react';
 import { StudentProfile } from '../types/scholarship';
 import { COUNTRIES } from '../data/countries';
-import { searchUniversities } from '../data/universities';
 import { ACADEMIC_SUBJECTS } from '../data/subjects';
 import { STUDY_LEVEL_OPTIONS } from '../data/studyLevels';
 
@@ -82,7 +81,7 @@ export const EditableProfileBar: React.FC<EditableProfileBarProps> = ({
             )}
 
             {/* Study Level Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-emerald-850 text-emerald-300">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-emerald-800 text-emerald-300">
               <GraduationCap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="text-slate-400 text-xs">Level:</span>
               <span className="font-semibold text-white">{profile.studyLevel || "Undergraduate"}</span>

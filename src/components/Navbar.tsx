@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Laiba Global Scholarship Finder
             </span>
             <span className="text-[11px] text-emerald-400 font-medium leading-none mt-1">
-              Verified Funding. Protected Students.
+              Protected Students.
             </span>
           </div>
         </div>
@@ -157,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => handleSelect(item.id)}
                   className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-slate-850 border border-emerald-500/50 text-white'
+                      ? 'bg-slate-800 border border-emerald-500/50 text-white'
                       : 'bg-slate-900/60 text-slate-300 hover:text-white'
                   }`}
                 >

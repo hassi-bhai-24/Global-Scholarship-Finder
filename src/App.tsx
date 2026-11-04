@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroSearch } from './components/HeroSearch';
 import { SearchProgress } from './components/SearchProgress';
@@ -12,7 +12,7 @@ import { AdminConsoleView } from './components/AdminConsoleView';
 import { MemorialModal } from './components/MemorialModal';
 import { ScamSafetyModal } from './components/ScamSafetyModal';
 
-import { MatchCategory, MatchResult, Scholarship, StudentProfile, ApplicationStatus, ApplicationTrackerItem } from './types/scholarship';
+import { MatchResult, Scholarship, StudentProfile, ApplicationStatus, ApplicationTrackerItem } from './types/scholarship';
 import { VERIFIED_SCHOLARSHIPS } from './data/scholarships';
 import { evaluateEligibility, sortAndFilterMatches, isEligibleNationality } from './services/matchingEngine';
 import {
@@ -25,13 +25,9 @@ import {
 } from './services/storage';
 
 import {
-  Filter,
-  ArrowUpDown,
   Search,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
   SlidersHorizontal,
   Globe,
   RefreshCw,
@@ -116,9 +112,8 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
   const [fundingFilter, setFundingFilter] = useState<string>('all');
-  const [degreeFilter, setDegreeFilter] = useState<string>('all');
-  const [destinationFilter, setDestinationFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'best_match' | 'deadline_soonest' | 'fully_funded' | 'recently_verified'>('best_match');
+  const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Study Level Multi-Select Filter state
@@ -161,8 +156,6 @@ export default function App() {
   const [isEnrichmentOpen, setIsEnrichmentOpen] = useState(false);
   const [isDeepScanning, setIsDeepScanning] = useState(false);
   const [deepScanMessage, setDeepScanMessage] = useState<string | null>(null);
-  const [lastRefreshedTime, setLastRefreshedTime] = useState<string | null>(null);
-  const [recentWebQueries, setRecentWebQueries] = useState<string[]>([]);
   const [isMemorialOpen, setIsMemorialOpen] = useState(false);
   const [isScamSafetyOpen, setIsScamSafetyOpen] = useState(false);
   const [scamSafetyTab, setScamSafetyTab] = useState<'guide' | 'report'>('guide');
@@ -224,7 +217,7 @@ export default function App() {
     if (enableLive) {
       setIsLiveFetching(true);
       const levelLabel = userProfile.studyLevel || "All Levels";
-      setLiveDiscoveryNotice(`Refreshing registries & browsing internet for ${userProfile.country} (${levelLabel}, ${userProfile.university})...`);
+      setLiveDiscoveryNotice(`Searching the local catalog and, if live discovery is available, the internet for ${userProfile.country} (${levelLabel}, ${userProfile.university})...`);
 
       try {
         setTimeout(() => setSearchStage(2), 650);
@@ -244,11 +237,6 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           if (data.results && data.results.length > 0) {
-            setLastRefreshedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-            if (data.webSearchQueries && data.webSearchQueries.length > 0) {
-              setRecentWebQueries(data.webSearchQueries);
-            }
-
             // Freshly populate results for the new search conditions
             const countryEligible = data.results.filter((r: MatchResult) =>
               isEligibleNationality(r.scholarship, userProfile.country)
@@ -283,14 +271,14 @@ export default function App() {
 
             const liveCount = data.summary?.liveDiscovered || 0;
             if (liveCount > 0) {
-              setLiveDiscoveryNotice(`Freshly discovered ${liveCount} live official scholarship opportunities from worldwide internet registries!`);
+              setLiveDiscoveryNotice(`Live discovery returned ${liveCount} additional result(s). They have NOT been checked: confirm each one on its official page before applying.`);
             } else {
-              setLiveDiscoveryNotice(`Refreshed feeds: Verified all recognized official programs for ${userProfile.country} (${levelLabel}).`);
+              setLiveDiscoveryNotice(`Local catalog results for ${userProfile.country} (${levelLabel}). Live discovery returned nothing new or is unavailable; listings below are from the local catalog, links last checked 4 Nov 2026.`);
             }
           }
         }
       } catch {
-        setLiveDiscoveryNotice(`Refreshed feeds: Grounded with verified catalog (${instantMatches.length} opportunities loaded).`);
+        setLiveDiscoveryNotice(`Local catalog loaded (${instantMatches.length} opportunities). Links last checked 4 Nov 2026; deadlines are as listed — confirm each on its official page.`);
       } finally {
         setTimeout(() => setSearchStage(4), 1300);
         setTimeout(() => {
@@ -340,7 +328,7 @@ export default function App() {
   const handleTriggerDeepScan = async () => {
     if (!profile) return;
     setIsDeepScanning(true);
-    setDeepScanMessage("Scanning official ministries and university portals for your exact profile...");
+    setDeepScanMessage("Checking for additional opportunities for your profile...");
     try {
       const res = await fetch('/api/scholarships/deep-scan', {
         method: 'POST',
@@ -362,19 +350,15 @@ export default function App() {
             likelyMatches: prev.likelyMatches + data.results.filter((r: MatchResult) => r.category === 'LIKELY_MATCH').length,
             openOpportunities: prev.openOpportunities + data.discoveredCount
           }));
-          if (data.quotaExceeded) {
-            setDeepScanMessage("Official global portal scan verified all recognized programs for your profile.");
-          } else {
-            setDeepScanMessage(`Successfully discovered and added ${data.discoveredCount} live official opportunities!`);
-          }
+          setDeepScanMessage(data.message || "Showing catalog matches for your profile. No new live opportunities were added.");
         } else {
-          setDeepScanMessage("Deep scan completed. All recognized global opportunities matching your criteria are included.");
+          setDeepScanMessage("Deep scan added nothing new. The catalog results above are unchanged.");
         }
       } else {
-        setDeepScanMessage("Verified official directory opportunities are fully loaded.");
+        setDeepScanMessage("Showing the local catalog. Live discovery is unavailable.");
       }
     } catch {
-      setDeepScanMessage("Verified official directory opportunities are fully loaded.");
+      setDeepScanMessage("Showing the local catalog. Live discovery is unavailable.");
     } finally {
       setIsDeepScanning(false);
       setTimeout(() => setDeepScanMessage(null), 5000);
@@ -405,9 +389,7 @@ export default function App() {
   const visibleMatches = sortAndFilterMatches(allMatches, {
     category: categoryFilter,
     fundingType: fundingFilter,
-    degreeLevel: degreeFilter,
     studyLevels: selectedStudyLevels,
-    destination: destinationFilter,
     searchQuery: searchQuery,
     subjectFilter: effectiveSubject,
     sortBy: sortBy
@@ -470,7 +452,7 @@ export default function App() {
                       )}
                       <div>
                         <div className="font-semibold text-emerald-300">
-                          {isLiveFetching ? 'Fetching live global portals...' : 'Live Portal Discovery Synced'}
+                          {isLiveFetching ? 'Searching…' : 'Search results'}
                         </div>
                         <div className="text-slate-300 text-[11px] mt-0.5">
                           {liveDiscoveryNotice || `Searching worldwide ministries, embassies, and universities for ${profile?.country}...`}
@@ -479,7 +461,7 @@ export default function App() {
                     </div>
 
                     <div className="text-[10px] uppercase font-mono-data px-2.5 py-1 rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-200 shrink-0">
-                      {isLiveFetching ? 'Live Scraping' : 'Verified'}
+                      {isLiveFetching ? 'Searching' : 'Local catalog'}
                     </div>
                   </div>
                 )}
@@ -660,6 +642,20 @@ export default function App() {
                         ))}
                       </div>
 
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(!showFilters)}
+                        aria-expanded={showFilters}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-950 border border-slate-700 text-slate-200 hover:text-white cursor-pointer self-start"
+                      >
+                        {showFilters ? 'Hide filters' : 'Filters'}
+                        {(selectedSubjectFilter !== 'all' || fundingFilter !== 'all') && (
+                          <span className="ml-1.5 text-emerald-400">(active)</span>
+                        )}
+                      </button>
+
+                      {showFilters && (
+                      <>
                       {/* Quick Major Filter Strip */}
                       <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/70 rounded-xl border border-slate-800/80 text-xs">
                         <span className="text-slate-400 font-semibold text-[11px] mr-1 flex items-center gap-1">
@@ -729,9 +725,11 @@ export default function App() {
                           <option value="best_match">Sort: Best Match &amp; Discipline</option>
                           <option value="deadline_soonest">Sort: Deadline Soonest</option>
                           <option value="fully_funded">Sort: Fully Funded First</option>
-                          <option value="recently_verified">Sort: Recently Verified</option>
+                          <option value="recently_verified">Sort: Recently Checked</option>
                         </select>
                       </div>
+                      </>
+                      )}
                     </div>
 
                     {/* Result Count Status Line */}
@@ -763,7 +761,6 @@ export default function App() {
                           onClick={() => {
                             setCategoryFilter('all');
                             setFundingFilter('all');
-                            setDegreeFilter('all');
                             setSearchQuery('');
                             handleClearAllStudyLevels();
                           }}
@@ -882,7 +879,7 @@ export default function App() {
       <footer className="border-t border-slate-900 bg-slate-950 py-6 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div>
-            <span>Laiba Global Scholarship Finder · Official sources only</span>
+            <span>Laiba Global Scholarship Finder · Check every listing on its official page</span>
           </div>
 
           <div>

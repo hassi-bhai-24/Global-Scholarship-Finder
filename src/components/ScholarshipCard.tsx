@@ -16,7 +16,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
   isSaved,
   onToggleSave
 }) => {
-  const { scholarship, category, confidenceScore } = match;
+  const { scholarship, category } = match;
 
   const cardLevels = scholarship.levels && scholarship.levels.length > 0
     ? scholarship.levels
@@ -90,6 +90,13 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
       return `${s.daysRemaining} days left`;
     }
     return s.deadline;
+  };
+
+  const linkCheckLabel = (s: Scholarship) => {
+    if (!s.linkCheck) return `Listed as checked ${s.lastVerified}`;
+    if (s.linkCheck.linkStatus === 'links_ok') return `Links checked ${s.linkCheck.checkedOn} · both links responded`;
+    if (s.linkCheck.linkStatus === 'links_broken') return `Links checked ${s.linkCheck.checkedOn} · a link is broken — confirm on the official page`;
+    return `Links checked ${s.linkCheck.checkedOn} · could not be checked from here — confirm on the official page`;
   };
 
   return (
@@ -173,6 +180,10 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
           <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
         </button>
       </div>
+
+      {/* Link-check status: a link check only, not a confirmation of the
+          deadline, CGPA cutoff or benefits. */}
+      <p className="pt-2 text-[11px] text-slate-500">{linkCheckLabel(scholarship)}</p>
     </div>
   );
 };

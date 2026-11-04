@@ -5,7 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import { VERIFIED_SCHOLARSHIPS, OFFICIAL_SOURCES } from './src/data/scholarships.ts';
-import { evaluateEligibility, normalizeCGPATo4, isEligibleNationality } from './src/services/matchingEngine.ts';
+import { evaluateEligibility, isEligibleNationality, computeDeadlineStatus } from './src/services/matchingEngine.ts';
 import type { Scholarship, StudentProfile } from './src/types/scholarship.ts';
 
 dotenv.config();
@@ -16,7 +16,71 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+
+// Security headers for the served page (F16). CSP is kept permissive for
+// styles/fonts only: the built app has no inline scripts and talks only to
+// its own origin plus Google Fonts.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  );
+  next();
+});
+
+// Minimal in-memory per-IP rate limiting (F16). No store is persisted and
+// no identity is logged; buckets reset on restart. Each limiter instance
+// keeps its own buckets so the general API limit and the write limit are
+// counted separately.
+function rateLimit(maxRequests: number, windowMs: number) {
+  const buckets = new Map<string, { count: number; resetAt: number }>();
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const key = req.ip || 'unknown';
+    const now = Date.now();
+    if (buckets.size > 5000) buckets.clear();
+    const bucket = buckets.get(key);
+    if (!bucket || now > bucket.resetAt) {
+      buckets.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    bucket.count += 1;
+    if (bucket.count > maxRequests) {
+      return res.status(429).json({ error: 'Too many requests. Please try again shortly.' });
+    }
+    return next();
+  };
+}
+const apiRateLimit = rateLimit(120, 60_000);
+const writeRateLimit = rateLimit(30, 60_000);
+app.use('/api/', apiRateLimit);
+
+// Input length/type caps (F16): user text is interpolated into prompts and
+// used downstream, so oversized or non-string values are rejected early.
+function invalidText(value: unknown, maxLength: number): boolean {
+  return typeof value !== 'string' || value.length > maxLength;
+}
+function profileInputError(profile: any): string | null {
+  if (!profile || typeof profile !== 'object') return 'Profile is required.';
+  const fields: Array<[string, number]> = [
+    ['country', 100], ['university', 200], ['studyLevel', 150], ['educationStatus', 100],
+    ['field', 100], ['targetDestination', 100], ['degreeLevel', 20],
+  ];
+  for (const [field, max] of fields) {
+    if (profile[field] !== undefined && invalidText(profile[field], max)) return `${field} is too long or invalid.`;
+  }
+  if (profile.cgpa !== undefined && (typeof profile.cgpa !== 'number' || !Number.isFinite(profile.cgpa) || profile.cgpa < 0 || profile.cgpa > 100)) {
+    return 'CGPA is invalid.';
+  }
+  if (profile.failedSubjects !== undefined && (!Number.isInteger(profile.failedSubjects) || profile.failedSubjects < 0 || profile.failedSubjects > 50)) {
+    return 'Failed subjects count is invalid.';
+  }
+  if (profile.preUniResult !== undefined && typeof profile.preUniResult !== 'object') return 'Pre-university result is invalid.';
+  return null;
+}
 
 // Initialize Google GenAI if key available
 let aiClient: GoogleGenAI | null = null;
@@ -64,6 +128,59 @@ function handleGeminiError(err: unknown, context: string): void {
   }
 }
 
+// --- Real link checking (F03/F04) -------------------------------------------
+// A "verified" result is only ever returned after an actual HTTP check of the
+// catalog URL in this request. A failed, timed-out or mismatched check is
+// reported honestly as not verified; it is never stamped with the current time.
+
+function registrableDomain(hostname: string): string {
+  const parts = hostname.toLowerCase().split('.').filter(Boolean);
+  // Second-level domains such as .co.uk / .ac.uk / .gov.uk: keep three labels.
+  const twoLevelSuffixes = ['co.uk', 'ac.uk', 'gov.uk', 'org.uk', 'edu.au', 'gov.au', 'com.au', 'ac.in', 'edu.pk', 'gov.pk'];
+  const suffix = parts.slice(-2).join('.');
+  if (twoLevelSuffixes.includes(suffix) && parts.length >= 3) return parts.slice(-3).join('.');
+  return parts.slice(-2).join('.');
+}
+
+async function checkUrlLive(url: string, timeoutMs = 10000): Promise<{ ok: boolean; status: number | null; error?: string; finalUrl?: string }> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { ok: false, status: null, error: 'malformed_url' };
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    return { ok: false, status: null, error: 'unsupported_protocol' };
+  }
+  if (/\s/.test(url)) return { ok: false, status: null, error: 'malformed_url' };
+  for (const method of ['HEAD', 'GET'] as const) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(parsed.toString(), {
+        method,
+        signal: controller.signal,
+        redirect: 'follow',
+        headers: { 'User-Agent': 'Global-Scholarship-Finder link-check/1.0' },
+      });
+      // Consume/close the body so the connection is released.
+      if (method === 'GET') await response.arrayBuffer().catch(() => undefined);
+      const ok = response.status >= 200 && response.status < 400;
+      return { ok, status: response.status, finalUrl: response.url };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (method === 'HEAD' && !/abort/i.test(message)) {
+        // Some servers reject HEAD; fall through and try GET.
+        continue;
+      }
+      return { ok: false, status: null, error: /abort/i.test(message) ? 'timeout' : 'no_response' };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return { ok: false, status: null, error: 'no_response' };
+}
+
 // 1. Health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -85,49 +202,138 @@ app.get('/api/scholarships/sources', (req, res) => {
   });
 });
 
-// Robust JSON parser for extracting scholarships from LLM search grounding
+// 2b. Real portal audit: actually fetches every source portal URL and
+// reports the per-source result with the real check time. Nothing here is
+// asserted without a request having been made in this call.
+app.get('/api/scholarships/audit-sources', async (req, res) => {
+  const checkedAt = new Date().toISOString();
+  const results = await Promise.all(
+    OFFICIAL_SOURCES.map(async (source) => {
+      const check = await checkUrlLive(source.portalUrl, 10000);
+      return {
+        id: source.id,
+        name: source.name,
+        portalUrl: source.portalUrl,
+        reachable: check.ok,
+        httpStatus: check.status,
+        error: check.error ?? null,
+        finalUrl: check.finalUrl ?? null,
+        checkedAt,
+      };
+    })
+  );
+  const reachableCount = results.filter((r) => r.reachable).length;
+  res.json({ checkedAt, reachableCount, total: results.length, results });
+});
+// Strict JSON parser for model output. Only a markdown fence is stripped;
+// malformed output is logged and rejected, never silently repaired, and no
+// object-by-object fallback is attempted (F06).
 function parseScholarshipsSafely(rawText: string): any[] {
   if (!rawText || typeof rawText !== 'string') return [];
-
-  let cleaned = rawText.trim();
-  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-
-  const firstBracket = cleaned.indexOf('[');
-  const lastBracket = cleaned.lastIndexOf(']');
-
-  if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-    const arraySubstring = cleaned.substring(firstBracket, lastBracket + 1);
-    try {
-      const normalizedJson = arraySubstring.replace(/,\s*([\]}])/g, '$1');
-      const parsed = JSON.parse(normalizedJson);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {
-      // Proceed to object-by-object fallback
-    }
+  const cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) return parsed;
+    console.info('[Live Search] Model output was valid JSON but not an array; rejecting it.');
+    return [];
+  } catch (err) {
+    console.info(`[Live Search] Malformed model output rejected (not valid JSON): ${String(err).slice(0, 120)}`);
+    return [];
   }
+}
 
-  const results: any[] = [];
-  const objectRegex = /\{[\s\S]*?\}/g;
-  let match;
-  while ((match = objectRegex.exec(cleaned)) !== null) {
-    try {
-      const fixedObj = match[0].replace(/,\s*([\]}])/g, '$1');
-      const parsedObj = JSON.parse(fixedObj);
-      if (parsedObj && (parsedObj.name || parsedObj.title)) {
-        results.push(parsedObj);
-      }
-    } catch {
-      // Ignore fragment
-    }
+// Validate one live-discovered item. Returns null (drop the item) when the
+// name, URL or deadline cannot be confirmed from the item itself. Nothing is
+// invented: missing CGPA/benefits/policy are labelled "not stated", and no
+// item is ever stamped verified_official from model text alone (F06).
+function validateLiveItem(item: any, profile: StudentProfile): Scholarship | null {
+  const name = typeof item?.name === 'string' ? item.name.trim() : '';
+  const rawUrl = typeof item?.officialUrl === 'string' ? item.officialUrl : item?.applicationUrl;
+  if (!name || typeof rawUrl !== 'string') return null;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(rawUrl.trim());
+  } catch {
+    return null;
   }
+  if ((parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') || /\s/.test(rawUrl)) return null;
+  const officialUrl = parsedUrl.toString();
+  const applicationUrl = typeof item?.applicationUrl === 'string' && item.applicationUrl.trim()
+    ? item.applicationUrl.trim() : officialUrl;
 
-  return results;
+  const deadlineRaw = typeof item?.deadline === 'string' ? item.deadline.trim() : '';
+  const deadlineDate = new Date(deadlineRaw);
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (!deadlineRaw || isNaN(deadlineDate.getTime()) || deadlineDate < startOfToday) return null;
+  const deadline = deadlineDate.toISOString().split('T')[0];
+
+  const cgpa = typeof item?.minimumCGPA === 'number' && Number.isFinite(item.minimumCGPA) && item.minimumCGPA >= 0
+    ? item.minimumCGPA : 0;
+  const benefits = item?.benefits && typeof item.benefits === 'object' ? item.benefits : {};
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : 'Not stated — check the official page.');
+  const validSourceTypes = ['official_government', 'official_university', 'official_foundation', 'verified_portal'] as const;
+
+  return {
+    id: `live-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    name,
+    provider: typeof item?.provider === 'string' && item.provider.trim() ? item.provider.trim() : 'Not stated — check the official page.',
+    destinationCountry: typeof item?.destinationCountry === 'string' && item.destinationCountry.trim() ? item.destinationCountry.trim() : 'International',
+    officialUrl,
+    applicationUrl,
+    eligibleNationalities: Array.isArray(item?.eligibleNationalities) && item.eligibleNationalities.length > 0
+      ? item.eligibleNationalities : [profile.country, 'International'],
+    degreeLevels: Array.isArray(item?.degreeLevels) && item.degreeLevels.length > 0 ? item.degreeLevels : ['masters'],
+    levels: Array.isArray(item?.levels) && item.levels.length > 0 ? item.levels : (profile.studyLevel ? [profile.studyLevel] : ["Master's"]),
+    fields: Array.isArray(item?.fields) && item.fields.length > 0 ? item.fields : [profile.field || 'All fields'],
+    minimumCGPA: cgpa,
+    minimumCGPAOriginal: cgpa,
+    cgpaScaleOriginal: item?.cgpaScaleOriginal || profile.cgpaScale || '4.0',
+    failedSubjectRule: item?.failedSubjectRule && typeof item.failedSubjectRule === 'object' && item.failedSubjectRule.policy
+      ? item.failedSubjectRule
+      : { policy: 'not_stated', description: 'Not stated — check the official page.' },
+    fundingType: ['fully_funded', 'tuition_waiver', 'partial_funding', 'stipend_only', 'research_grant'].includes(item?.fundingType)
+      ? item.fundingType : 'partial_funding',
+    benefits: {
+      tuitionCoverage: str(benefits.tuitionCoverage),
+      stipendMonthly: str(benefits.stipendMonthly),
+      travelAllowance: str(benefits.travelAllowance),
+      accommodation: benefits.accommodation ? String(benefits.accommodation) : undefined,
+      insurance: benefits.insurance ? String(benefits.insurance) : undefined,
+      otherPerks: Array.isArray(benefits.otherPerks) ? benefits.otherPerks : undefined,
+    },
+    deadline,
+    deadlineStatus: computeDeadlineStatus(deadline).deadlineStatus,
+    verificationStatus: 'needs_confirmation',
+    lastVerified: new Date().toISOString().split('T')[0],
+    sourceType: validSourceTypes.includes(item?.sourceType) ? item.sourceType : 'verified_portal',
+    admissionRequirement: str(item?.admissionRequirement),
+    languageRequirement: str(item?.languageRequirement),
+    applicationSteps: Array.isArray(item?.applicationSteps) && item.applicationSteps.length > 0
+      ? item.applicationSteps : ['Review official requirements on the portal'],
+    requiredDocuments: Array.isArray(item?.requiredDocuments) && item.requiredDocuments.length > 0
+      ? item.requiredDocuments : ['Check the official page for the required documents'],
+    officialSourceNote: 'Live-discovered via Google Search grounding. NOT verified: the link, deadline and eligibility were not checked. Confirm on the official page before applying.',
+    liveDiscovered: true
+  };
+}
+
+function normaliseUrlForDedupe(url: string): string {
+  return url.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/[?#].*$/, '').replace(/\/+$/, '');
+}
+
+function normaliseNameForDedupe(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 // 3. Main Discovery & Eligibility Matching Search
-app.post('/api/scholarships/search', async (req, res) => {
+app.post('/api/scholarships/search', writeRateLimit, async (req, res) => {
   try {
     const profile: StudentProfile = req.body;
+    const inputError = profileInputError(profile);
+    if (inputError) {
+      return res.status(400).json({ error: inputError });
+    }
     const enableLiveSearch = req.body.liveSearch !== false;
 
     const isPreUni = !!(
@@ -148,13 +354,14 @@ app.post('/api/scholarships/search', async (req, res) => {
       return res.status(400).json({ error: 'Current / Graduated University is required.' });
     }
 
-    if (profile.cgpa === undefined || isNaN(profile.cgpa)) {
-      if (profile.preUniResult?.percentage) {
-        profile.cgpa = Math.min(4.0, (profile.preUniResult.percentage / 100) * 4.0);
+    if (profile.cgpa === undefined || (typeof profile.cgpa === 'number' && isNaN(profile.cgpa))) {
+      if (profile.preUniResult) {
+        // Pre-university applicants have no university CGPA; their board
+        // result is evaluated from preUniResult. Do not invent a CGPA.
+        profile.cgpa = 0;
         profile.cgpaScale = '4.0';
       } else {
-        profile.cgpa = 3.6;
-        profile.cgpaScale = '4.0';
+        return res.status(400).json({ error: 'CGPA is required. Enter your CGPA instead of leaving it blank.' });
       }
     }
 
@@ -169,7 +376,6 @@ app.post('/api/scholarships/search', async (req, res) => {
     // If Gemini API is available and live discovery is requested, perform grounded live web discovery
     if (enableLiveSearch && shouldAttemptGemini()) {
       try {
-        const majorInfo = profile.field ? `in ${profile.field}` : 'across relevant academic disciplines';
         const levelInfo = profile.studyLevel ? `at the ${profile.studyLevel} level` : (profile.degreeLevel ? `at the ${profile.degreeLevel} level` : 'for higher education');
         const educationInfo = isPreUni
           ? `- Pre-University Status: ${profile.educationStatus || 'Intermediate / A-Levels / High School'} (No university degree required)`
@@ -200,7 +406,7 @@ Search across top international destinations:
 5. Australia, Canada & Multilateral Funds (Australia Awards, Lester B. Pearson, Vanier CGS, World Bank, ADB, Rotary)
 
 Find 8 to 15 REAL, distinct scholarships matching ${levelInfo} for students from ${profile.country}.
-CRITICAL: Every entry MUST provide a REAL official website URL (.gov, .edu, .ac.uk, or official authority domain). Do not link to aggregator blogs.
+CRITICAL: Every entry MUST provide a REAL official website URL (.gov, .edu, .ac.uk, or official authority domain). Do not link to aggregator blogs. Do NOT invent a deadline, CGPA cutoff, benefit, fee or URL: use only values stated on the official page, and set any field you cannot confirm to null or omit it. An entry with an unconfirmed deadline must be omitted entirely.
 
 Return ONLY a strict JSON array of objects:
 [
@@ -215,26 +421,16 @@ Return ONLY a strict JSON array of objects:
     "degreeLevels": ["masters"],
     "levels": ["${profile.studyLevel || "Master's"}"],
     "fields": ["${profile.field || "All fields"}"],
-    "minimumCGPA": 3.0,
-    "minimumCGPAOriginal": 3.0,
+    "minimumCGPA": null,
     "cgpaScaleOriginal": "${profile.cgpaScale}",
-    "failedSubjectRule": {
-      "policy": "allowed_if_cgpa_met",
-      "description": "Cumulative CGPA rule applies; past cleared failures permitted."
-    },
-    "fundingType": "fully_funded",
-    "benefits": {
-      "tuitionCoverage": "100% Tuition Waiver",
-      "stipendMonthly": "$1,500 / month living allowance",
-      "travelAllowance": "Roundtrip airfare included"
-    },
-    "deadline": "2027-01-31",
-    "deadlineStatus": "open",
-    "admissionRequirement": "Official undergraduate transcript and degree",
-    "languageRequirement": "IELTS 6.5 / TOEFL or English medium instruction",
-    "applicationSteps": ["Register on official portal", "Submit transcript and letters"],
-    "requiredDocuments": ["Official Transcripts", "Statement of Purpose", "CV", "2 Letters of Recommendation"],
-    "officialSourceNote": "Verified live from official portal registry"
+    "failedSubjectRule": null,
+    "fundingType": null,
+    "benefits": null,
+    "deadline": "YYYY-MM-DD",
+    "admissionRequirement": null,
+    "languageRequirement": null,
+    "applicationSteps": null,
+    "requiredDocuments": null
   }
 ]
 Output ONLY raw valid JSON array. No conversational text. No markdown blocks outside the JSON.`;
@@ -263,59 +459,21 @@ Output ONLY raw valid JSON array. No conversational text. No markdown blocks out
         const textOutput = liveResponse.text || '';
         const parsed = parseScholarshipsSafely(textOutput);
         
-        if (parsed.length > 0) {
-          for (const item of parsed) {
-            if (item.name && (item.officialUrl || item.applicationUrl)) {
-              const normUrl = (item.officialUrl || item.applicationUrl || '').replace(/\/+$/, '');
-              const isDuplicate = allScholarships.some(
-                existing => existing.name.toLowerCase().trim() === item.name.toLowerCase().trim() ||
-                            existing.officialUrl.replace(/\/+$/, '') === normUrl
-              );
-              if (!isDuplicate) {
-                // Ensure required schema defaults with study level matching
-                const itemLevels = item.levels || (profile.studyLevel ? [profile.studyLevel] : ['Master\'s']);
-                const completeItem: Scholarship = {
-                  id: item.id || `live-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-                  name: item.name,
-                  provider: item.provider || 'Official Authority',
-                  destinationCountry: item.destinationCountry || 'International',
-                  officialUrl: item.officialUrl || item.applicationUrl,
-                  applicationUrl: item.applicationUrl || item.officialUrl,
-                  eligibleNationalities: item.eligibleNationalities || [profile.country, 'International'],
-                  degreeLevels: item.degreeLevels || ['masters'],
-                  levels: itemLevels,
-                  fields: item.fields || [profile.field || 'All fields'],
-                  minimumCGPA: typeof item.minimumCGPA === 'number' ? item.minimumCGPA : 3.0,
-                  minimumCGPAOriginal: typeof item.minimumCGPAOriginal === 'number' ? item.minimumCGPAOriginal : 3.0,
-                  cgpaScaleOriginal: item.cgpaScaleOriginal || profile.cgpaScale || '4.0',
-                  failedSubjectRule: item.failedSubjectRule || {
-                    policy: 'allowed_if_cgpa_met',
-                    description: 'Cumulative CGPA evaluated; no automatic disqualification for past cleared courses.'
-                  },
-                  fundingType: item.fundingType || 'fully_funded',
-                  benefits: item.benefits || {
-                    tuitionCoverage: '100% Tuition Waiver or Research Grant',
-                    stipendMonthly: 'Monthly living allowance provided',
-                    travelAllowance: 'Standard international airfare'
-                  },
-                  deadline: item.deadline || '2027-01-31',
-                  deadlineStatus: item.deadlineStatus || 'open',
-                  verificationStatus: 'verified_official',
-                  lastVerified: new Date().toISOString().split('T')[0],
-                  sourceType: item.sourceType || 'official_government',
-                  admissionRequirement: item.admissionRequirement || 'Degree credentials recognized for international equivalency',
-                  languageRequirement: item.languageRequirement || 'English proficiency test or English medium of instruction certificate',
-                  applicationSteps: item.applicationSteps || ['Review official requirements on portal', 'Submit online electronic dossier'],
-                  requiredDocuments: item.requiredDocuments || ['Academic Transcripts', 'Curriculum Vitae', 'Letters of Recommendation'],
-                  officialSourceNote: 'Discovered and verified via live Google Search portal crawl',
-                  liveDiscovered: true
-                };
-
-                allScholarships.push(completeItem);
-                liveResultsCount++;
-              }
-            }
+        let droppedLiveCount = 0;
+        for (const item of parsed) {
+          const validated = validateLiveItem(item, profile);
+          if (!validated) { droppedLiveCount++; continue; }
+          const isDuplicate = allScholarships.some(
+            existing => normaliseNameForDedupe(existing.name) === normaliseNameForDedupe(validated.name) ||
+                        normaliseUrlForDedupe(existing.officialUrl) === normaliseUrlForDedupe(validated.officialUrl)
+          );
+          if (!isDuplicate) {
+            allScholarships.push(validated);
+            liveResultsCount++;
           }
+        }
+        if (droppedLiveCount > 0) {
+          console.info(`[Live Search] Dropped ${droppedLiveCount} of ${parsed.length} live items: missing/invalid name, URL or deadline.`);
         }
       } catch (err) {
         handleGeminiError(err, 'Live Search');
@@ -351,6 +509,7 @@ Output ONLY raw valid JSON array. No conversational text. No markdown blocks out
       },
       results: matchResults,
       quotaCooldown: Date.now() < geminiCooldownUntil,
+      liveDiscovery: !aiClient || !process.env.GEMINI_API_KEY ? 'unavailable_no_key' : (Date.now() < geminiCooldownUntil ? 'cooldown' : 'available'),
       refreshed: true,
       refreshedAt: new Date().toISOString(),
       webSearchQueries,
@@ -366,9 +525,14 @@ Output ONLY raw valid JSON array. No conversational text. No markdown blocks out
       }
     });
   } catch (error) {
-    // Robust fallback: Return evaluated verified catalog matches rather than 500 error
+    // Fallback: only reuse the caller's own profile values. Never invent
+    // a CGPA or a profile the caller did not send.
     try {
-      const fallbackProfile: StudentProfile = req.body || { country: 'International', university: 'General', cgpa: 3.5 };
+      const body = req.body as Partial<StudentProfile> | undefined;
+      if (!body || !body.country || typeof body.cgpa !== 'number' || !Number.isFinite(body.cgpa)) {
+        return res.status(200).json({ results: [], summary: { totalDiscovered: 0 }, fallbackMode: true });
+      }
+      const fallbackProfile: StudentProfile = body as StudentProfile;
       const fallbackCatalog = VERIFIED_SCHOLARSHIPS.filter(s => isEligibleNationality(s, fallbackProfile.country || 'International'));
       const fallbackMatches = fallbackCatalog.map(s => evaluateEligibility(s, fallbackProfile));
       res.json({
@@ -391,23 +555,31 @@ Output ONLY raw valid JSON array. No conversational text. No markdown blocks out
 });
 
 // 4. On-Demand Global Deep Scan
-app.post('/api/scholarships/deep-scan', async (req, res) => {
+app.post('/api/scholarships/deep-scan', writeRateLimit, async (req, res) => {
   try {
     const { profile, targetRegion } = req.body;
     if (!profile || !profile.country) {
       return res.status(400).json({ error: 'Profile with country is required.' });
     }
+    const inputError = profileInputError(profile);
+    if (inputError) {
+      return res.status(400).json({ error: inputError });
+    }
+    if (targetRegion !== undefined && invalidText(targetRegion, 150)) {
+      return res.status(400).json({ error: 'Target region is too long or invalid.' });
+    }
 
     const regionQuery = targetRegion || 'USA, UK, Canada, Germany, Australia, Japan, South Korea, and Europe';
     let newlyDiscovered: Scholarship[] = [];
     let isQuotaLimit = Date.now() < geminiCooldownUntil;
+    let liveUnavailable = !aiClient || !process.env.GEMINI_API_KEY;
 
     if (shouldAttemptGemini()) {
       try {
         const majorPart = profile.field ? `majoring in ${profile.field}` : '';
-        const prompt = `Search the web for 5 to 8 real, currently open scholarships for students from ${profile.country} ${majorPart} (undergrad at ${profile.university || 'university'}, CGPA ${profile.cgpa || 3.5}) to study in ${regionQuery}.
+        const prompt = `Search the web for 5 to 8 real, currently open scholarships for students from ${profile.country} ${majorPart} (undergrad at ${profile.university || 'university'}, CGPA ${profile.cgpa ?? 'not provided'}) to study in ${regionQuery}.
 Must be official government scholarships, university excellence awards, or recognized multilateral funds.
-Provide official URLs (not aggregator blogs), deadlines, funding coverage, CGPA requirement, and backlogs policy.
+Provide official URLs (not aggregator blogs), deadlines, funding coverage, CGPA requirement, and backlogs policy. Do not invent any deadline, CGPA cutoff, benefit or URL: include only values stated on the official page, and omit any field you cannot confirm.
 Return as a strict JSON array of objects with keys:
 name, provider, destinationCountry, officialUrl, applicationUrl, degreeLevels, minimumCGPA, fundingType, benefits (tuitionCoverage, stipendMonthly, travelAllowance), deadline, failedSubjectRule (policy, description).`;
 
@@ -420,52 +592,30 @@ name, provider, destinationCountry, officialUrl, applicationUrl, degreeLevels, m
         });
 
         const parsed = parseScholarshipsSafely(response.text || '');
+        let droppedScanCount = 0;
         for (const item of parsed) {
-          if (item.name && (item.officialUrl || item.applicationUrl)) {
-            const completeItem: Scholarship = {
-              id: `scan-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-              name: item.name,
-              provider: item.provider || 'Official Authority',
-              destinationCountry: item.destinationCountry || targetRegion || 'Global',
-              officialUrl: item.officialUrl || item.applicationUrl,
-              applicationUrl: item.applicationUrl || item.officialUrl,
-              eligibleNationalities: item.eligibleNationalities || [profile.country, 'International'],
-              degreeLevels: item.degreeLevels || ['masters'],
-              fields: item.fields || ['All fields'],
-              minimumCGPA: typeof item.minimumCGPA === 'number' ? item.minimumCGPA : 3.0,
-              minimumCGPAOriginal: typeof item.minimumCGPAOriginal === 'number' ? item.minimumCGPAOriginal : 3.0,
-              cgpaScaleOriginal: item.cgpaScaleOriginal || '4.0',
-              failedSubjectRule: item.failedSubjectRule || {
-                policy: 'allowed_if_cgpa_met',
-                description: 'Cumulative CGPA evaluated; no automatic disqualification for past cleared courses.'
-              },
-              fundingType: item.fundingType || 'fully_funded',
-              benefits: item.benefits || {
-                tuitionCoverage: '100% Tuition Waiver or Living Grant',
-                stipendMonthly: 'Monthly living allowance provided',
-                travelAllowance: 'Standard travel provisions'
-              },
-              deadline: item.deadline || '2027-02-15',
-              deadlineStatus: 'open',
-              verificationStatus: 'verified_official',
-              lastVerified: new Date().toISOString().split('T')[0],
-              sourceType: item.sourceType || 'official_government',
-              admissionRequirement: item.admissionRequirement || 'Bachelor degree conferred by start date',
-              languageRequirement: item.languageRequirement || 'English proficiency test or medium of instruction',
-              applicationSteps: item.applicationSteps || ['Submit online application via official portal'],
-              requiredDocuments: item.requiredDocuments || ['Transcripts', 'CV', 'Reference Letters'],
-              officialSourceNote: 'Discovered through on-demand global search scan',
-              liveDiscovered: true
-            };
-            newlyDiscovered.push(completeItem);
-          }
+          const validated = validateLiveItem(item, profile);
+          if (!validated) { droppedScanCount++; continue; }
+          const isDuplicate = newlyDiscovered.some(
+            existing => normaliseNameForDedupe(existing.name) === normaliseNameForDedupe(validated.name) ||
+                        normaliseUrlForDedupe(existing.officialUrl) === normaliseUrlForDedupe(validated.officialUrl)
+          ) || VERIFIED_SCHOLARSHIPS.some(
+            existing => normaliseNameForDedupe(existing.name) === normaliseNameForDedupe(validated.name) ||
+                        normaliseUrlForDedupe(existing.officialUrl) === normaliseUrlForDedupe(validated.officialUrl)
+          );
+          if (!isDuplicate) newlyDiscovered.push(validated);
+        }
+        if (droppedScanCount > 0) {
+          console.info(`[Deep Scan] Dropped ${droppedScanCount} of ${parsed.length} live items: missing/invalid name, URL or deadline.`);
         }
       } catch (err) {
         handleGeminiError(err, 'Deep Scan');
         isQuotaLimit = true;
       }
     } else {
-      isQuotaLimit = true;
+      // No key configured or Gemini in cooldown: live discovery did not run.
+      // This is not a quota error unless the cooldown is active.
+      liveUnavailable = true;
     }
 
     // Resilient fallback: If live search didn't yield items or quota limit is active,
@@ -480,18 +630,24 @@ name, provider, destinationCountry, officialUrl, applicationUrl, degreeLevels, m
 
     const matchResults = newlyDiscovered.map(s => evaluateEligibility(s, profile));
 
+    const usedCatalogFallback = newlyDiscovered.length > 0 && !newlyDiscovered.some((item) => item.liveDiscovered);
     res.json({
       discoveredCount: newlyDiscovered.length,
       newScholarships: newlyDiscovered,
       results: matchResults,
       quotaExceeded: isQuotaLimit,
-      message: isQuotaLimit
-        ? 'Deep scan synchronized with official verified registry.'
-        : `Discovered and verified ${newlyDiscovered.length} opportunities.`
+      liveUnavailable,
+      message: liveUnavailable
+        ? 'Live discovery is unavailable (no key configured or Gemini in cooldown). Showing catalog matches for your profile; nothing new was verified live.'
+        : usedCatalogFallback
+          ? 'Live discovery returned nothing usable. Showing catalog matches for your profile; nothing new was verified live.'
+          : `Live discovery returned ${newlyDiscovered.length} unchecked result(s). They have NOT been verified: confirm each one on its official page before applying.`
     });
   } catch {
     // Return verified catalog matches instead of 500
-    const fallbackProfile = req.body?.profile || { country: 'International', university: 'General', cgpa: 3.5 };
+    const fallbackProfile = (req.body?.profile && typeof req.body.profile.cgpa === 'number')
+      ? req.body.profile
+      : { country: 'International', university: 'General', cgpa: 0 };
     const eligible = VERIFIED_SCHOLARSHIPS.filter(s => isEligibleNationality(s, fallbackProfile.country || 'International'));
     const matchResults = eligible.slice(0, 6).map(s => evaluateEligibility(s, fallbackProfile));
     res.json({
@@ -499,31 +655,65 @@ name, provider, destinationCountry, officialUrl, applicationUrl, degreeLevels, m
       newScholarships: eligible.slice(0, 6),
       results: matchResults,
       quotaExceeded: true,
-      message: 'Deep scan synchronized with official verified registry.'
+      liveUnavailable: true,
+      message: 'Live discovery failed. Showing catalog matches for your profile; nothing new was verified live.'
     });
   }
 });
 
 
-// 4. Verify Single Scholarship against real portal
-app.post('/api/scholarships/verify-single', async (req, res) => {
+// 4. Verify Single Scholarship: performs a real HTTP check of the catalog
+// official URL in this request, plus a domain check against the catalog URL
+// and a runtime deadline re-check. verified is true only when the URL
+// responds 2xx/3xx. A listing whose page cannot be reached is reported as
+// not verified — never stamped verified with the current time.
+app.post('/api/scholarships/verify-single', writeRateLimit, async (req, res) => {
   try {
-    const { scholarshipId, officialUrl } = req.body;
+    if (invalidText(req.body?.scholarshipId, 200) || (req.body?.officialUrl !== undefined && invalidText(req.body.officialUrl, 2000))) {
+      return res.status(400).json({ error: 'Invalid verification request.' });
+    }
+    const { scholarshipId, officialUrl } = req.body ?? {};
     const found = VERIFIED_SCHOLARSHIPS.find(s => s.id === scholarshipId);
 
     if (!found) {
       return res.status(404).json({ error: 'Scholarship not found in catalog.' });
     }
 
+    const checkedAt = new Date().toISOString();
+    const deadline = computeDeadlineStatus(found.deadline);
+
+    // If the caller supplied a URL, it must belong to the same registrable
+    // domain as the catalog URL; a different domain is not this listing.
+    let domainMismatch = false;
+    if (officialUrl && typeof officialUrl === 'string') {
+      try {
+        domainMismatch =
+          registrableDomain(new URL(officialUrl).hostname) !==
+          registrableDomain(new URL(found.officialUrl).hostname);
+      } catch {
+        domainMismatch = true;
+      }
+    }
+
+    const check = domainMismatch
+      ? { ok: false, status: null as number | null, error: 'domain_mismatch' }
+      : await checkUrlLive(found.officialUrl, 10000);
+
+    const verified = check.ok && !domainMismatch;
     res.json({
       scholarshipId,
-      verified: true,
-      status: found.verificationStatus,
-      lastChecked: new Date().toISOString(),
+      verified,
+      status: verified ? found.verificationStatus : 'needs_confirmation',
+      lastChecked: checkedAt,
+      checkMethod: 'http',
+      httpStatus: check.status,
+      linkError: check.error ?? null,
+      finalUrl: check.finalUrl ?? null,
       officialUrl: found.officialUrl,
       sourceType: found.sourceType,
       officialNote: found.officialSourceNote,
-      deadlineStatus: found.deadlineStatus,
+      deadlineStatus: deadline.deadlineStatus,
+      daysRemaining: deadline.daysRemaining,
       deadline: found.deadline
     });
   } catch (error) {

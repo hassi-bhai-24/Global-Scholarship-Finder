@@ -1,17 +1,28 @@
 import { ApplicationStatus, ApplicationTrackerItem, Scholarship } from '../types/scholarship';
+import { VERIFIED_SCHOLARSHIPS } from '../data/scholarships';
+import { withRuntimeDeadline } from './matchingEngine';
 
 const STORAGE_KEY = 'global_scholarship_finder_tracker_v1';
-const PROFILE_KEY = 'global_scholarship_finder_profile_v1';
 
+// F23: saved items are refreshed from the catalog on every read, so a
+// saved scholarship never shows a stale deadline, benefit or link status.
+// Items not in the catalog (e.g. live-discovered) fall back to the stored
+// snapshot, which is the only copy that exists for them.
 export function getSavedTrackerItems(): ApplicationTrackerItem[] {
+  let items: ApplicationTrackerItem[];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    items = JSON.parse(raw);
   } catch (e) {
     console.error("Failed to read tracker items from localStorage", e);
     return [];
   }
+  return items.map((item) => {
+    const current = VERIFIED_SCHOLARSHIPS.find((entry) => entry.id === item.scholarshipId);
+    if (current) return { ...item, scholarship: withRuntimeDeadline(current) };
+    return item;
+  });
 }
 
 export function saveTrackerItem(scholarship: Scholarship, status: ApplicationStatus = 'saved', notes = ''): ApplicationTrackerItem[] {
@@ -86,4 +97,34 @@ export function removeTrackerItem(scholarshipId: string): ApplicationTrackerItem
 export function isScholarshipSaved(scholarshipId: string): boolean {
   const items = getSavedTrackerItems();
   return items.some(i => i.scholarshipId === scholarshipId);
+}
+
+const SCAM_REPORTS_KEY = 'global_scholarship_finder_scam_reports_local_v1';
+
+export interface LocalScamReport {
+  urlOrName: string;
+  details: string;
+  reportedAt: string;
+}
+
+// Scam reports are stored ONLY in this browser's localStorage. This site has
+// no inbox, no verification team and no server endpoint for reports, so
+// nothing is sent anywhere. The modal must say so plainly (F10).
+export function saveScamReportLocally(report: Omit<LocalScamReport, 'reportedAt'>): LocalScamReport[] {
+  let existing: LocalScamReport[] = [];
+  try {
+    const raw = localStorage.getItem(SCAM_REPORTS_KEY);
+    if (raw) existing = JSON.parse(raw);
+  } catch {
+    existing = [];
+  }
+  const entry: LocalScamReport = { ...report, reportedAt: new Date().toISOString() };
+  const updated = [entry, ...existing].slice(0, 50);
+  try {
+    localStorage.setItem(SCAM_REPORTS_KEY, JSON.stringify(updated));
+  } catch {
+    // Storage full or unavailable: the caller still shows the honest
+    // "not sent anywhere" message; the report simply is not kept.
+  }
+  return updated;
 }
